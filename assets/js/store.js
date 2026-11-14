@@ -80,7 +80,19 @@
   const P = (id, name, price, category, stock, sizes, badge, desc, featured) => ({
     id, name, price, category, stock, sizes, badge: badge || '', desc,
     featured: !!featured, active: true, images: [], createdAt: Date.now() - Math.random() * 1e9,
+    sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' },
   });
+  const LABELS = {
+    navShop: 'CATALOG', navDrop: 'DROP', navAbout: 'ABOUT', navJoin: 'JOIN',
+    bag: 'BAG', search: 'SEARCH', searchPh: 'type…', all: 'ALL', saved: 'SAVED', sale: 'SALE',
+    newest: 'NEWEST', priceLow: 'PRICE ↑', priceHigh: 'PRICE ↓', az: 'A — Z',
+    addToBag: 'ADD TO BAG', soldOut: 'SOLD OUT', inStock: 'IN STOCK', onlyLeft: 'ONLY {n} LEFT',
+    size: 'SIZE', qty: 'QTY', yourBag: 'YOUR BAG', bagEmpty: '— BAG IS EMPTY —', remove: 'REMOVE',
+    subtotal: 'SUBTOTAL', total: 'TOTAL', shipping: 'ONGKIR', free: 'GRATIS', youSave: 'HEMAT',
+    checkout: 'CHECKOUT VIA WHATSAPP', loadMore: 'LOAD MORE', noResult: '— NO RESULT. TRY ANOTHER SEARCH —',
+    voucher: 'KODE VOUCHER', apply: 'PAKAI', subscribe: 'SUBSCRIBE →', emailPh: 'EMAIL@KAMU.COM',
+    added: 'DITAMBAHKAN KE BAG ✦', preorderClosed: 'TOKO SEDANG TUTUP', menu: 'MENU',
+  };
   const CL = ['S', 'M', 'L', 'XL'];
 
   const DEFAULTS = {
@@ -90,10 +102,12 @@
         bg: '#09090b', fg: '#ececf0', muted: '#8b8b95', card: '#101013', accent: '#c8ff2e', line: '#26262c',
         displayFont: 'Unbounded', bodyFont: 'Space Grotesk', monoFont: 'JetBrains Mono',
         radius: 2, gridCols: 4, ratio: '4/5', animSpeed: 1,
+        maxWidth: 0, fontScale: 1, btnShape: 'sharp', cardStyle: 'default', imgFit: 'cover', navSticky: true,
       },
       effects: {
         preloader: true, grain: true, cursor: true, scanlines: false,
         reveal: true, glitch: true, tilt: true, sparkles: true,
+        progress: true, hoverSwap: true, smooth: true, backTop: true,
       },
       hero: {
         eyebrow: '[ DROP 001 — UNDERGROUND SERIES ]',
@@ -103,7 +117,18 @@
         showSticker: true, sticker: 'LIMITED EDITION',
       },
       marquee: { text: 'FREE ONGKIR > 500K ✦ LIMITED PIECES ✦ NO RESTOCK ✦ RUDE BY DESIGN', speed: 28 },
-      announcement: { enabled: true, text: 'DROP 001 LIVE — STOK TERBATAS' },
+      announcement: { enabled: true, text: 'DROP 001 LIVE — STOK TERBATAS', link: '', style: 'accent', dismissible: false },
+      promo: {
+        enabled: false, label: 'FLASH SALE', type: 'percent', value: 10, scope: 'all', cats: [],
+        start: '', end: '', banner: true, bannerText: 'DISKON OTOMATIS DI SEMUA PRODUK',
+      },
+      vouchers: [
+        { id: 'v1', code: 'TRSH10', type: 'percent', value: 10, minSpend: 0, maxDiscount: 0, expires: '', active: false },
+      ],
+      popup: {
+        enabled: false, title: 'WELCOME TO THE NOISE', text: 'Pakai kode TRSH10 untuk diskon 10% di order pertama.',
+        cta: 'SHOP NOW', link: '#shop', delay: 4, frequency: 'session', code: 'TRSH10',
+      },
       drop: { title: 'NEXT DROP IN', note: 'Drop 002 — “NO SIGNAL” capsule. Set reminder.', date: inDays(14) },
       shop: { kicker: '[ 02 — CATALOG ]', title: 'THE CATALOG' },
       about: {
@@ -115,12 +140,24 @@
         text: '© 2026 RUDE TRASH. ALL RIGHTS RESERVED.',
       },
       social: { instagram: 'https://instagram.com/', tiktok: 'https://tiktok.com/', email: 'hello@trsh.store' },
+      socialOn: { instagram: true, tiktok: true, email: true },
+      socialExtra: [],
+      socialCfg: { footer: true, hero: false, newTab: true },
+      order: ['hero', 'marquee', 'drop', 'shop', 'extra', 'about', 'newsletter'],
+      seo: { title: '', description: '', image: '', favicon: '', lang: 'id' },
+      tracking: { ga: '', pixel: '' },
+      labels: LABELS,
       sections: { hero: true, marquee: true, drop: true, shop: true, extra: false, about: true, newsletter: true },
       store: {
         currency: 'Rp', whatsapp: '6281234567890',
         cart: true, wishlist: true, search: true, sort: true, showStock: true, lowStock: 5,
+        showStrike: true, discountBadge: 'percent', showSavings: true, saleChip: true, roundTo: 0,
+        soldOut: 'show', defaultSort: 'new', perPage: 0, maxPerItem: 0,
+        ordering: true, closedText: 'TOKO SEDANG TUTUP — PESANAN DIBUKA KEMBALI SEGERA.',
+        shipFee: 0, freeShipMin: 0, shipNote: '', minOrder: 0, voucherBox: true,
+        waFloat: false, waFloatText: 'CHAT', waFloatPos: 'right', waFloatMsg: 'Halo, saya mau tanya produk.',
         maintenance: false, maintenanceText: 'SEDANG MAINTENANCE. KAMI SEGERA KEMBALI.',
-        template: 'Halo TRSH! Saya mau order:\n{items}\n\nTotal: {total}\n\nNama:\nAlamat:\nCatatan:',
+        template: 'Halo TRSH! Saya mau order:\n{items}\n\n{summary}\nTotal: {total}\n\nNama:\nAlamat:\nCatatan:',
       },
       custom: { flags: [], css: '', extraHtml: '' },
       admin: { password: 'rude123' },
@@ -144,6 +181,9 @@
     ],
     subscribers: [],
   };
+  // contoh bawaan: dua produk berdiskon (dipakai agar fitur diskon langsung terlihat)
+  DEFAULTS.products[1].sale = { on: true, type: 'percent', value: 20, start: '', end: '' };
+  DEFAULTS.products[4].sale = { on: true, type: 'price', value: 299000, start: '', end: '' };
 
   /* ---------- Supabase (otomatis mode lokal bila config kosong) ---------- */
   const cfg = w.TRSH_CONFIG || {};
@@ -273,11 +313,15 @@
   }
 
   /* ---------- Pesanan & subscriber (admin) ---------- */
-  const mapOrder = (r) => ({ id: r.id, time: Date.parse(r.created_at), status: r.status, total: Number(r.total), items: r.items || [] });
+  const mapOrder = (r) => ({ id: r.id, time: Date.parse(r.created_at), status: r.status, total: Number(r.total), items: r.items || [], meta: r.meta || {} });
   const toRow = (o) => ({
     id: String(o.id), status: STATUSES.includes(o.status) ? o.status : 'new', total: Number(o.total) || 0,
-    items: Array.isArray(o.items) ? o.items : [], created_at: new Date(o.time || Date.now()).toISOString(),
+    items: Array.isArray(o.items) ? o.items : [], meta: o.meta && typeof o.meta === 'object' ? o.meta : {},
+    created_at: new Date(o.time || Date.now()).toISOString(),
   });
+  // kolom `meta` baru ada setelah schema.sql dijalankan ulang; bila belum, coba lagi tanpa kolom itu
+  const noMeta = (e) => e && (e.code === 'PGRST204' || /meta/i.test(e.message || ''));
+  const dropMeta = (r) => { const c = Object.assign({}, r); delete c.meta; return c; }
   async function loadAdminData() {
     const [o, s] = await Promise.all([
       sb.from('orders').select('*').order('created_at', { ascending: false }).limit(1000),
@@ -298,7 +342,9 @@
   async function importOrders(arr) {
     const rows = arr.map(toRow);
     for (let i = 0; i < rows.length; i += 100) {
-      const { error } = await sb.from('orders').upsert(rows.slice(i, i + 100), { onConflict: 'id', ignoreDuplicates: true });
+      const chunk = rows.slice(i, i + 100);
+      let { error } = await sb.from('orders').upsert(chunk, { onConflict: 'id', ignoreDuplicates: true });
+      if (noMeta(error)) ({ error } = await sb.from('orders').upsert(chunk.map(dropMeta), { onConflict: 'id', ignoreDuplicates: true }));
       if (error) throw error;
     }
   }
@@ -308,7 +354,8 @@
   const pend = () => { try { return JSON.parse(localStorage.getItem(PKEY)) || []; } catch (e) { return []; } };
   const setPend = (a) => { try { if (a.length) localStorage.setItem(PKEY, JSON.stringify(a)); else localStorage.removeItem(PKEY); } catch (e) {} };
   async function sendOrder(row) {
-    const { error } = await sb.from('orders').insert(row);
+    let { error } = await sb.from('orders').insert(row);
+    if (noMeta(error)) ({ error } = await sb.from('orders').insert(dropMeta(row)));
     if (error && error.code !== '23505') throw error;
   }
   async function flushPending() {
@@ -432,9 +479,113 @@ ${bars}
     return 0.299 * r + 0.587 * g + 0.114 * b > 150 ? '#09090b' : '#ffffff';
   }
 
+  /* ---------- Harga, diskon & promo ---------- */
+  const toTs = (v) => { if (!v) return null; const t = new Date(v).getTime(); return isNaN(t) ? null : t; };
+  const inWindow = (o, now) => { const a = toTs(o.start), b = toTs(o.end); return (a == null || now >= a) && (b == null || now <= b); };
+  // hasil harga setelah potongan, atau null bila potongan tidak valid / tidak menurunkan harga
+  function cut(base, type, value, step) {
+    value = Number(value) || 0;
+    if (!(value > 0)) return null;
+    let p = type === 'amount' ? base - value : type === 'price' ? value : base * (1 - Math.min(value, 100) / 100);
+    if (step > 0 && type !== 'price') p = Math.round(p / step) * step;
+    p = Math.max(0, Math.round(p));
+    return p > 0 && p < base ? p : null; // potongan ≥ harga normal (jadi gratis/negatif) dianggap tidak valid
+  }
+  // harga efektif sebuah produk pada waktu tertentu (diskon produk vs promo global → ambil yang termurah)
+  function pricing(p, now) {
+    now = now || Date.now();
+    const s = db.settings, base = Math.max(0, Number(p.price) || 0), step = Number(s.store.roundTo) || 0;
+    const out = { price: base, orig: base, on: false, pct: 0, save: 0, src: '', end: null };
+    if (!base) return out;
+    const c = [], sl = p.sale, pr = s.promo;
+    if (sl && sl.on && inWindow(sl, now)) { const v = cut(base, sl.type, sl.value, step); if (v != null) c.push({ v, src: 'product', end: toTs(sl.end) }); }
+    if (pr && pr.enabled && inWindow(pr, now) && (pr.scope !== 'cats' || (pr.cats || []).indexOf(p.category) >= 0)) {
+      const v = cut(base, pr.type, pr.value, step); if (v != null) c.push({ v, src: 'promo', end: toTs(pr.end) });
+    }
+    if (!c.length) return out;
+    c.sort((a, b) => a.v - b.v);
+    out.price = c[0].v; out.on = true; out.src = c[0].src; out.end = c[0].end;
+    out.save = base - out.price; out.pct = Math.max(1, Math.round((1 - out.price / base) * 100));
+    return out;
+  }
+
+  function promoState(now) {
+    now = now || Date.now();
+    const pr = db.settings.promo;
+    const on = !!(pr && pr.enabled && inWindow(pr, now));
+    return { on, end: on ? toTs(pr.end) : null, label: pr ? pr.label : '' };
+  }
+
+  /* ---------- Sosial media ---------- */
+  const SOCIALS = [
+    { k: 'instagram', n: 'Instagram', ph: 'https://instagram.com/akunkamu', base: 'https://instagram.com/' },
+    { k: 'tiktok', n: 'TikTok', ph: 'https://tiktok.com/@akunkamu', base: 'https://tiktok.com/@' },
+    { k: 'whatsapp', n: 'WhatsApp', ph: '6281234567890', wa: 1 },
+    { k: 'email', n: 'Email', ph: 'hello@domain.com', mail: 1 },
+    { k: 'facebook', n: 'Facebook', ph: 'https://facebook.com/halaman', base: 'https://facebook.com/' },
+    { k: 'x', n: 'X / Twitter', ph: 'https://x.com/akunkamu', base: 'https://x.com/' },
+    { k: 'youtube', n: 'YouTube', ph: 'https://youtube.com/@channel', base: 'https://youtube.com/@' },
+    { k: 'threads', n: 'Threads', ph: 'https://threads.net/@akunkamu', base: 'https://threads.net/@' },
+    { k: 'telegram', n: 'Telegram', ph: 'https://t.me/akunkamu', base: 'https://t.me/' },
+    { k: 'discord', n: 'Discord', ph: 'https://discord.gg/undangan' },
+    { k: 'line', n: 'LINE', ph: 'https://line.me/ti/p/…' },
+    { k: 'pinterest', n: 'Pinterest', ph: 'https://pinterest.com/akunkamu', base: 'https://pinterest.com/' },
+    { k: 'shopee', n: 'Shopee', ph: 'https://shopee.co.id/tokokamu' },
+    { k: 'tokopedia', n: 'Tokopedia', ph: 'https://tokopedia.com/tokokamu' },
+    { k: 'spotify', n: 'Spotify', ph: 'https://open.spotify.com/…' },
+    { k: 'linkedin', n: 'LinkedIn', ph: 'https://linkedin.com/in/akunkamu', base: 'https://linkedin.com/in/' },
+    { k: 'github', n: 'GitHub', ph: 'https://github.com/akunkamu', base: 'https://github.com/' },
+  ];
+  // hanya http(s), mailto, tel, anchor (#) dan path relatif — blokir javascript: dsb.
+  function safeUrl(u) {
+    u = String(u || '').trim();
+    if (!u) return '';
+    if (/^(https?:\/\/|mailto:|tel:|#|\/)/i.test(u)) return u;
+    if (/^[\w-]+(\.[\w-]+)*\.[a-z]{2,}(\/|$)/i.test(u)) return 'https://' + u;
+    return '';
+  }
+  // 0812… / 812… / +62812… → 62812… (format wa.me)
+  function waNumber(v) {
+    let n = String(v || '').replace(/\D/g, '');
+    if (n.startsWith('0')) n = '62' + n.slice(1);
+    else if (n.startsWith('8')) n = '62' + n;
+    return n;
+  }
+  function socialHref(k, v) {
+    v = String(v || '').trim();
+    if (!v) return '';
+    const d = SOCIALS.find((x) => x.k === k) || {};
+    if (d.mail) return /^mailto:/i.test(v) ? v : MAIL.test(v) ? 'mailto:' + v : '';
+    if (d.wa) { if (/^https?:\/\//i.test(v)) return v; const n = waNumber(v); return n.length >= 8 ? 'https://wa.me/' + n : ''; }
+    if (/^https?:\/\//i.test(v)) return v;
+    if (d.base && /^@?[\w.\-]+$/.test(v)) return d.base + v.replace(/^@/, '');
+    return safeUrl(v);
+  }
+  // daftar link sosial yang AKTIF (toggle on + URL valid)
+  function socialLinks() {
+    const s = db.settings, on = s.socialOn || {}, out = [];
+    SOCIALS.forEach((d) => { const h = on[d.k] ? socialHref(d.k, (s.social || {})[d.k]) : ''; if (h) out.push({ k: d.k, label: d.n.toUpperCase(), href: h }); });
+    (s.socialExtra || []).forEach((x) => { const h = x && x.on !== false ? safeUrl(x.url) : ''; if (h && x.label) out.push({ k: 'x-' + x.label, label: String(x.label).toUpperCase(), href: h }); });
+    return out;
+  }
+
+  /* ---------- Label teks & urutan seksi ---------- */
+  function L(k, vars) {
+    let t = (db.settings.labels && db.settings.labels[k]) || LABELS[k] || '';
+    if (vars) for (const x in vars) t = t.split('{' + x + '}').join(vars[x]);
+    return t;
+  }
+  const SECTION_IDS = ['hero', 'marquee', 'drop', 'shop', 'extra', 'about', 'newsletter'];
+  function sectionOrder() {
+    const o = (db.settings.order || []).filter((k, i, a) => SECTION_IDS.indexOf(k) >= 0 && a.indexOf(k) === i);
+    SECTION_IDS.forEach((k) => { if (o.indexOf(k) < 0) o.push(k); });
+    return o;
+  }
+
   /* ---------- Public API ---------- */
   const T = {
     FONTS, fontUrl, fontStack, contrast, placeholder, getPath,
+    pricing, promoState, waNumber, SOCIALS, safeUrl, socialHref, socialLinks, L, LABELS, sectionOrder, SECTION_IDS,
     remote: REMOTE, auth, status: 'idle',
     get: () => db,
     update(fn) { fn(db); persist(); notify('local'); },
@@ -489,7 +640,7 @@ ${bars}
       list: () => (REMOTE ? ordersCache : ol()),
       add(o) {
         if (!REMOTE) { const a = ol(); a.unshift(o); os(a); notify('local'); return Promise.resolve(); }
-        const row = { id: String(o.id), status: 'new', total: Number(o.total) || 0, items: o.items || [] };
+        const row = { id: String(o.id), status: 'new', total: Number(o.total) || 0, items: o.items || [], meta: o.meta || {} };
         return sendOrder(row).catch((e) => { console.warn('TRSH: pesanan ditunda, akan dicoba lagi', e); setPend(pend().concat([row])); });
       },
       update(id, patch) {

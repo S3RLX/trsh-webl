@@ -58,6 +58,8 @@ create table if not exists public.orders (
   items      jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now()
 );
+-- v2: rincian diskon/voucher/ongkir per pesanan (aman dijalankan ulang di database lama)
+alter table public.orders add column if not exists meta jsonb not null default '{}'::jsonb;
 alter table public.orders enable row level security;
 
 drop policy if exists "orders public insert" on public.orders;
@@ -74,6 +76,8 @@ create policy "orders public insert" on public.orders
     and jsonb_typeof(items) = 'array'
     and jsonb_array_length(items) between 1 and 50
     and pg_column_size(items) < 20000
+    and jsonb_typeof(meta) = 'object'
+    and pg_column_size(meta) < 4000
   );
 create policy "orders admin select" on public.orders
   for select to authenticated using (public.is_admin());

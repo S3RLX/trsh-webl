@@ -52,6 +52,32 @@ python3 -m http.server 8080
 
 Tombol **LIVE PREVIEW** membuka toko di panel samping (mode desktop/mobile) yang ikut berubah saat Anda mengetik.
 
+## Update v2 — fitur baru
+
+**Diskon & harga coret**
+- Per produk (Produk → Edit → *Diskon & Harga Coret*): potongan **persen**, **nominal**, atau **harga akhir**, dengan jadwal mulai/berakhir opsional. Harga normal otomatis dicoret, ada badge `−30%`, "HEMAT Rp …", dan countdown sisa waktu promo.
+- **Promo global / flash sale** (tab *Diskon & Promo*): diskon otomatis untuk semua produk atau kategori tertentu + banner countdown. Jika produk punya diskon sendiri, harga termurah yang dipakai.
+- Potongan tidak valid (≥ harga normal, nilai 0) diabaikan, bukan membuat harga gratis. Harga di toko berganti sendiri saat jadwal mulai/berakhir, tanpa reload.
+- **Kode voucher** (persen / nominal / gratis ongkir, min. belanja, batas potongan, kedaluwarsa) dan **popup promo**.
+- Pilihan tampilan: harga coret, badge, chip ✦ SALE, pembulatan harga diskon.
+
+**Sosial media** (tab *Sosial Media*): 17 platform dengan toggle on/off masing-masing + link kustom. Yang dimatikan atau URL-nya kosong/tidak valid otomatis disembunyikan. Bisa isi username (`@rude.trash`) atau nomor WhatsApp; tampil di footer dan/atau hero.
+
+**Konfigurasi lanjutan**
+- *Tampilan*: bentuk tombol (kotak/pil), gaya kartu, crop foto, lebar maksimum, skala teks, navbar sticky, efek progress bar / smooth scroll / tombol ke atas / hover foto kedua.
+- *Fitur & Toko*: urutan default & perilaku produk habis (tampil/akhir/sembunyi), LOAD MORE, batas qty per produk, buka/tutup checkout, ongkir flat, gratis ongkir (progress bar di keranjang), minimum order, tombol WhatsApp melayang.
+- *Lanjutan*: **urutan seksi** (naik/turun), **SEO** (judul, deskripsi, gambar, favicon, bahasa), **Google Analytics 4 & Meta Pixel**, dan **edit semua teks/label toko** (mis. ganti ke bahasa Indonesia penuh).
+- Dashboard: omzet, jumlah produk diskon; Pesanan: filter status, rincian diskon/voucher/ongkir, CSV lebih lengkap.
+
+**Perbaikan bug**
+- Update realtime toko bisa berhenti setelah preloader selesai (error `#plText`) — diperbaiki.
+- Keranjang kini otomatis menyesuaikan qty dengan stok terbaru dan membuang produk yang sudah dihapus/habis.
+- Nomor WhatsApp `0812…` / `812…` otomatis menjadi format `62…` (sebelumnya link WA salah).
+- Link WhatsApp diperlakukan fallback bila popup diblokir browser mobile; URL admin dibatasi http(s)/mailto/tel (mencegah `javascript:`).
+- Menu navigasi mobile (sebelumnya tidak ada), kartu produk bisa diakses keyboard, fokus terlihat, scroll terkunci saat modal/keranjang terbuka, toast tidak meluber di layar kecil.
+
+> **Pengguna Supabase lama:** jalankan ulang `supabase/schema.sql` sekali (aman diulang) untuk menambah kolom `meta` pesanan. Tanpa itu toko tetap jalan, hanya rincian diskon/voucher per pesanan tidak tersimpan di database.
+
 ## Hubungkan ke Supabase (sekali saja)
 
 1. **Buat project** di [supabase.com](https://supabase.com) → New project.

@@ -142,3 +142,14 @@ code{font:12px var(--m);background:var(--bg);border:1px solid var(--line);paddin
 }
 
 .login input[type=email]{letter-spacing:.08em}
+
+/* v2 — diskon, voucher, sosial, lanjutan */
+.sale-prev{padding:10px 12px;border:1px dashed var(--line);background:var(--bg);font-size:13px;line-height:1.6}
+s.dim,.dim s{color:var(--dim)}
+.vrow2{display:grid;grid-template-columns:1.1fr 1fr .8fr .9fr .9fr 1.2fr auto auto;gap:8px;align-items:end;padding:12px 0;border-top:1px solid var(--line)}
+.soc-list{display:grid;gap:8px}
+.soc{display:grid;grid-template-columns:200px 1fr auto;gap:10px;align-items:center}
+.soc.ex{grid-template-columns:130px 1fr 1.4fr auto}
+.inp{padding:10px 12px}
+.sw.on{border-color:var(--acc);color:var(--acc)}
+@media (max-width:900px){.vrow2,.soc,.soc.ex{grid-template-columns:1fr}}
