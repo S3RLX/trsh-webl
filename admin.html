@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>TRSH — Admin Panel</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2309090b'/%3E%3Cpath d='M50 12C53 40 62 47 88 50C62 53 53 60 50 88C47 60 38 53 12 50C38 47 47 40 50 12Z' fill='%23c8ff2e'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+
+<!-- Login -->
+<div id="login" class="login">
+  <form id="loginForm" autocomplete="off">
+    <p class="mono dim">[ RESTRICTED AREA ]</p>
+    <h1>TRSH<i>✦</i></h1>
+    <p class="mono dim">ADMIN CONSOLE</p>
+    <input id="em" type="email" placeholder="EMAIL" autocomplete="username" hidden>
+    <input id="pw" type="password" placeholder="PASSWORD" autocomplete="current-password" autofocus>
+    <button class="btn acc" type="submit">ENTER →</button>
+    <p id="loginErr" class="mono err" hidden>PASSWORD SALAH</p>
+  </form>
+</div>
+
+<!-- App -->
+<div id="app" class="app" hidden>
+  <aside class="side">
+    <div class="brand"><b id="brandName">TRSH</b><i>✦</i><small class="mono dim">ADMIN</small></div>
+    <nav id="nav"></nav>
+    <div class="side-f">
+      <p class="mono live"><span class="dot"></span> REALTIME SYNC</p>
+      <button class="lnk mono" data-a="logout">LOGOUT ↗</button>
+    </div>
+  </aside>
+
+  <section class="main">
+    <header class="top">
+      <h2 id="title">Dashboard</h2>
+      <div class="top-r">
+        <span id="saved" class="mono dim">● SIAP</span>
+        <button class="btn" data-a="pv">LIVE PREVIEW</button>
+        <a class="btn" href="index.html" target="_blank" rel="noopener">BUKA TOKO ↗</a>
+      </div>
+    </header>
+    <div id="view" class="view"></div>
+  </section>
+
+  <aside id="preview" class="preview">
+    <div class="pv-bar mono">
+      <span>LIVE PREVIEW</span>
+      <span>
+        <button data-a="pv-d" class="on" id="pvD">DESKTOP</button>
+        <button data-a="pv-m" id="pvM">MOBILE</button>
+        <button data-a="pv-r">↻</button>
+      </span>
+    </div>
+    <div class="pv-wrap"><iframe id="pvFrame" title="Preview toko" src="about:blank"></iframe></div>
+  </aside>
+</div>
+
+<div id="panel" class="panel"></div>
+<div id="scrim" class="scrim"></div>
+<div id="toast" class="toast mono"></div>
+
+<script src="assets/js/vendor/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/admin.js"></script>
+</body>
+</html>

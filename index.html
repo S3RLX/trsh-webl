@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TRSH — RUDE TRASH</title>
+<meta name="description" content="RUDE TRASH (TRSH) — underground streetwear. Limited drops, no restock.">
+<meta name="theme-color" content="#09090b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%2309090b'/%3E%3Cpath d='M50 12C53 40 62 47 88 50C62 53 53 60 50 88C47 60 38 53 12 50C38 47 47 40 50 12Z' fill='%23c8ff2e'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link id="gfont" rel="stylesheet" href="data:text/css,">
+<link rel="stylesheet" href="assets/css/style.css">
+<style id="custom-css"></style>
+</head>
+<body class="loading">
+
+<!-- Preloader -->
+<div id="preloader" class="preloader">
+  <div class="pl-in">
+    <span class="mono" id="plText">TRSH</span>
+    <b id="plNum">000</b>
+    <i class="pl-bar"><u id="plBar"></u></i>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div class="grain"></div>
+<div class="scan"></div>
+<div class="cursor" id="cursor"></div>
+
+<!-- Announcement -->
+<div id="announce" class="announce mono" hidden></div>
+
+<!-- Navbar -->
+<header id="nav" class="nav">
+  <a href="#top" class="logo" id="logo"></a>
+  <nav class="links mono" id="links"></nav>
+  <div class="acts mono">
+    <button class="ab" data-act="wishlist" id="wishBtn" aria-label="Saved">♡ <b id="wishN">0</b></button>
+    <button class="ab" data-act="cart" id="cartBtn" aria-label="Bag">BAG <b id="cartN">0</b></button>
+  </div>
+</header>
+
+<main id="top">
+  <section id="hero" class="hero"></section>
+  <div id="marquee" class="marquee mono"></div>
+  <section id="drop" class="sec drop"></section>
+
+  <section id="shop" class="sec shop">
+    <div class="sec-head rv">
+      <p class="mono kicker" id="shopKicker"></p>
+      <h2 id="shopTitle"></h2>
+    </div>
+    <div class="toolbar rv">
+      <div class="chips" id="chips"></div>
+      <div class="tools">
+        <label class="srch" id="srchWrap"><span class="mono">SEARCH</span><input id="q" type="search" placeholder="type…" autocomplete="off"></label>
+        <label class="srt" id="sortWrap">
+          <select id="sort" aria-label="Sort">
+            <option value="new">NEWEST</option>
+            <option value="low">PRICE ↑</option>
+            <option value="high">PRICE ↓</option>
+            <option value="az">A — Z</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <p class="empty mono" id="empty" hidden>— NO RESULT. TRY ANOTHER SEARCH —</p>
+  </section>
+
+  <section id="extra" class="sec extra" hidden></section>
+  <section id="about" class="sec about"></section>
+  <section id="newsletter" class="sec news"></section>
+</main>
+
+<footer id="footer" class="foot"></footer>
+
+<!-- Cart drawer / product modal -->
+<aside id="drawer" class="drawer" aria-hidden="true"></aside>
+<div id="scrim" class="scrim"></div>
+<div id="modal" class="modal" aria-hidden="true"></div>
+
+<!-- Maintenance -->
+<div id="maint" class="maint" hidden></div>
+
+<div id="toast" class="toast mono"></div>
+
+<script src="assets/js/vendor/supabase.js"></script>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
