@@ -35,8 +35,6 @@ python3 -m http.server 8080
 # admin → http://localhost:8080/admin.html
 ```
 
-**Password admin default: `rude123`** (ganti di Admin → Sistem).
-
 ## Fitur admin (semua realtime)
 
 | Menu | Isi |
@@ -119,7 +117,6 @@ Tombol **LIVE PREVIEW** membuka toko di panel samping (mode desktop/mobile) yang
 - Setiap perubahan di admin disimpan otomatis (jeda ±0,5 detik) dan **tampil realtime di semua pengunjung** lewat Supabase Realtime.
 - `localStorage` hanya dipakai sebagai cache agar toko tampil instan; sumber kebenaran adalah Supabase.
 - Pesanan yang gagal terkirim (offline) disimpan sementara di browser pembeli dan dicoba lagi saat toko dibuka berikutnya.
-- Kosongkan `config.js` untuk kembali ke **mode lokal** (localStorage, password `rude123`).
 
 ## Menambah fitur sendiri
 
