@@ -59,6 +59,27 @@
   const fSub = (label, path, o = {}) => fText(label, path, o);
   const money = (n) => T.money(n);
   const priceLabel = (p) => { const x = T.pricing(p); return x.on ? `<b>${money(x.price)}</b> <s class="dim">${money(x.orig)}</s>` : money(p.price); };
+  /* tanggal: tampil sebagai waktu lokal admin, disimpan sebagai ISO UTC (countdown sama untuk semua pengunjung) */
+  const tzName = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } })();
+  const isoToLocal = (v) => { if (!v) return ''; const d = new Date(v); if (isNaN(d)) return ''; return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16); };
+  const fDate = (label, path, o = {}) => `<div class="f"><span>${esc(label)}${o.req ? '' : ' (opsional)'}</span>
+    <input type="datetime-local" data-type="date" ${o.req ? 'data-req="1"' : ''} data-path="${path}" value="${isoToLocal(val(path))}">
+    <div class="dq"><button type="button" class="btn sm" data-a="d-set" data-path="${path}" data-add="0">SEKARANG</button><button type="button" class="btn sm" data-a="d-set" data-path="${path}" data-add="3600000">+1 JAM</button><button type="button" class="btn sm" data-a="d-set" data-path="${path}" data-add="86400000">+1 HARI</button><button type="button" class="btn sm" data-a="d-set" data-path="${path}" data-add="604800000">+7 HARI</button>${o.req ? '' : `<button type="button" class="btn sm danger" data-a="d-set" data-path="${path}" data-clear="1">KOSONGKAN</button>`}</div>
+    ${tzName ? `<small class="dim mono">Zona waktu: ${esc(tzName)}</small>` : ''}</div>`;
+  const fImage = (label, path, o = {}) => { const v = String(val(path) || ''); return `<div class="f"><span>${esc(label)}</span><div class="imgf">${v ? `<img src="${esc(v)}" alt="">` : '<i class="mono dim">kosong</i>'}<div class="imgf-c"><input type="text" class="inp" data-path="${path}" value="${esc(v.startsWith('data:') ? '' : v)}" placeholder="${v.startsWith('data:') ? '(gambar terupload)' : 'https://… atau upload'}"><div class="pre" style="gap:6px"><label class="btn sm" style="cursor:pointer">UPLOAD<input type="file" accept="image/*" hidden data-up="${path}" data-max="${o.max || 1600}" ${o.alpha ? 'data-alpha="1"' : ''}></label>${v ? `<button type="button" class="btn sm danger" data-a="img-clear" data-path="${path}">HAPUS</button>` : ''}</div></div></div></div>`; };
+  // dialog konfirmasi sendiri (confirm() bawaan browser bisa diblokir & tampil jelek)
+  function ask(msg, ok, danger) {
+    return new Promise((res) => {
+      const m = document.createElement('div'); m.className = 'dlg';
+      m.innerHTML = `<div class="dlg-b" role="alertdialog" aria-modal="true"><p>${esc(msg).replace(/\n/g, '<br>')}</p><div class="dlg-a"><button class="btn" data-r="0">BATAL</button><button class="btn ${danger === false ? 'acc' : 'danger'}" data-r="1">${esc(ok || 'HAPUS')}</button></div></div>`;
+      document.body.appendChild(m);
+      const key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+      const done = (v) => { document.removeEventListener('keydown', key, true); m.remove(); res(v); };
+      m.addEventListener('click', (e) => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r === '1'); else if (e.target === m) done(false); });
+      document.addEventListener('keydown', key, true);
+      setTimeout(() => { const c = m.querySelector('[data-r="0"]'); if (c) c.focus(); }, 30);
+    });
+  }
   const fontOpts = () => T.FONTS.map((f) => [f.n, f.n]);
 
   /* ---------------- binding ---------------- */
@@ -70,7 +91,10 @@
       if (t === 'bool') v = el.checked;
       else if (t === 'num') v = el.value === '' ? 0 : Number(el.value);
       else if (t === 'list') v = el.value.split(',').map((s) => s.trim()).filter(Boolean);
-      else v = el.value;
+      else if (t === 'date') {
+        if (el.value === '') { if (el.dataset.req) return; v = ''; } // tanggal wajib: abaikan kondisi kosong saat sedang mengetik
+        else { const d = new Date(el.value); if (isNaN(d)) return; v = d.toISOString(); }
+      } else v = el.value;
       T.set(el.dataset.path, v);
       const o = el.parentElement && el.parentElement.querySelector('output'); if (o) o.textContent = v;
       if (editing >= 0) refreshSalePrev();
@@ -144,7 +168,7 @@
         <div class="box" style="padding:14px;gap:12px"><h3>Diskon & Harga Coret</h3>
           ${fTog('Aktifkan diskon produk ini', b + 'sale.on', 'Harga normal akan dicoret, harga diskon tampil menonjol')}
           <div class="row2">${fSelect('Jenis potongan', b + 'sale.type', [['percent', 'Persen (%)'], ['amount', 'Nominal (Rp)'], ['price', 'Harga akhir (Rp)']])}${fNum('Nilai', b + 'sale.value', { min: 0 })}</div>
-          <div class="row2">${fText('Mulai (opsional)', b + 'sale.start', { type: 'datetime-local' })}${fText('Berakhir (opsional)', b + 'sale.end', { type: 'datetime-local' })}</div>
+          <div class="row2">${fDate('Mulai', b + 'sale.start')}${fDate('Berakhir', b + 'sale.end')}</div>
           <div class="sale-prev" id="salePrev"></div>
           <p class="hint dim" style="font-size:12px">Kosongkan jadwal agar diskon langsung & terus berlaku. Bila ada promo global aktif, harga termurah yang dipakai. Potongan yang tidak valid (≥ harga normal) diabaikan.</p></div>
         <div class="row2">${fSelect('Kategori', b + 'category', catOpts)}${fText('Badge (NEW / LIMITED …)', b + 'badge', { ph: 'opsional' })}</div>
@@ -211,18 +235,23 @@
       <div class="box"><h3>Font</h3>${fSelect('Display (judul)', 'settings.theme.displayFont', fontOpts())}${fSelect('Body', 'settings.theme.bodyFont', fontOpts())}${fSelect('Mono (label)', 'settings.theme.monoFont', fontOpts())}<p class="hint">Font dimuat dari Google Fonts (butuh internet di sisi pengunjung).</p></div>
       <div class="box"><h3>Layout Katalog</h3>${fSelect('Kolom grid (desktop)', 'settings.theme.gridCols', [[2, '2 kolom'], [3, '3 kolom'], [4, '4 kolom'], [5, '5 kolom']], true)}${fSelect('Rasio foto produk', 'settings.theme.ratio', [['4/5', '4:5 Portrait'], ['3/4', '3:4 Portrait'], ['1/1', '1:1 Square'], ['2/3', '2:3 Tall'], ['4/3', '4:3 Landscape']])}${fRange('Radius sudut (px)', 'settings.theme.radius', 0, 24, 1)}${fRange('Kecepatan animasi', 'settings.theme.animSpeed', 0.3, 2.5, 0.1)}</div>
       <div class="box"><h3>Gaya & Layout</h3>${fSelect('Bentuk tombol & chip', 'settings.theme.btnShape', [['sharp', 'Kotak (tajam)'], ['pill', 'Pil (bulat)']])}${fSelect('Gaya kartu produk', 'settings.theme.cardStyle', [['default', 'Default (foto + teks)'], ['bordered', 'Berbingkai'], ['flat', 'Flat tanpa garis']])}${fSelect('Penyesuaian foto', 'settings.theme.imgFit', [['cover', 'Isi penuh (crop)'], ['contain', 'Tampil utuh (tanpa crop)']])}${fNum('Lebar maksimum konten (px, 0 = penuh)', 'settings.theme.maxWidth', { min: 0, ph: '0' })}${fRange('Skala ukuran teks', 'settings.theme.fontScale', 0.85, 1.3, 0.05)}${fTog('Navbar menempel saat scroll', 'settings.theme.navSticky')}</div>
-      <div class="box"><h3>Efek Visual</h3>${fTog('Preloader', 'settings.effects.preloader', 'Animasi loading saat membuka toko')}${fTog('Film grain', 'settings.effects.grain', 'Tekstur noise halus')}${fTog('Scanlines', 'settings.effects.scanlines', 'Garis CRT ala Y2K')}${fTog('Custom cursor', 'settings.effects.cursor', 'Hanya perangkat mouse')}${fTog('Reveal saat scroll', 'settings.effects.reveal')}${fTog('Glitch judul (hover)', 'settings.effects.glitch')}${fTog('Tilt 3D kartu produk', 'settings.effects.tilt')}${fTog('Sparkle & ring hero', 'settings.effects.sparkles')}${fTog('Foto kedua saat hover kartu', 'settings.effects.hoverSwap')}${fTog('Progress bar scroll', 'settings.effects.progress')}${fTog('Smooth scroll', 'settings.effects.smooth')}${fTog('Tombol kembali ke atas', 'settings.effects.backTop')}</div></div>`;
+      <div class="box"><h3>Efek Kaca (Glass)</h3>${fTog('Aktifkan Glass UI', 'settings.theme.glass.on', 'Navbar, kartu, panel & tombol menjadi kaca transparan')}${fRange('Blur (px)', 'settings.theme.glass.blur', 0, 40, 1)}${fRange('Kepekatan kaca', 'settings.theme.glass.opacity', 0.1, 0.9, 0.05)}${fRange('Garis tepi kaca', 'settings.theme.glass.border', 0, 0.5, 0.02)}${fRange('Saturasi warna', 'settings.theme.glass.saturate', 1, 2.2, 0.1)}<div class="row2">${fTog('Navbar', 'settings.theme.glass.nav')}${fTog('Kartu produk', 'settings.theme.glass.cards')}</div><div class="row2">${fTog('Modal, keranjang, popup', 'settings.theme.glass.panels')}${fTog('Tombol, chip, input', 'settings.theme.glass.ui')}</div><p class="hint">Kaca paling terlihat di atas latar bergerak — nyalakan efek <b>Aurora</b> pada kotak Efek Visual.</p></div>
+      <div class="box"><h3>Animasi</h3>${fSelect('Gaya muncul saat di-scroll', 'settings.theme.revealStyle', [['up', 'Naik + fade'], ['fade', 'Fade'], ['zoom', 'Zoom'], ['slide', 'Geser'], ['blur', 'Blur ke tajam']])}${fSelect('Efek hover kartu produk', 'settings.theme.cardHover', [['lift', 'Terangkat'], ['zoom', 'Zoom foto'], ['glow', 'Glow aksen'], ['none', 'Tanpa efek']])}<p class="hint">Kecepatan semua animasi diatur di kotak “Layout Katalog” (Kecepatan animasi). Pengunjung dengan pengaturan “kurangi gerakan” otomatis tidak melihat animasi.</p></div>
+      <div class="box"><h3>Efek Visual</h3>${fTog('Preloader', 'settings.effects.preloader', 'Animasi loading saat membuka toko')}${fTog('Film grain', 'settings.effects.grain', 'Tekstur noise halus')}${fTog('Scanlines', 'settings.effects.scanlines', 'Garis CRT ala Y2K')}${fTog('Custom cursor', 'settings.effects.cursor', 'Hanya perangkat mouse')}${fTog('Reveal saat scroll', 'settings.effects.reveal')}${fTog('Glitch judul (hover)', 'settings.effects.glitch')}${fTog('Tilt 3D kartu produk', 'settings.effects.tilt')}${fTog('Sparkle & ring hero', 'settings.effects.sparkles')}${fTog('Foto kedua saat hover kartu', 'settings.effects.hoverSwap')}${fTog('Progress bar scroll', 'settings.effects.progress')}${fTog('Smooth scroll', 'settings.effects.smooth')}${fTog('Tombol kembali ke atas', 'settings.effects.backTop')}${fTog('Aurora (latar gradien bergerak)', 'settings.effects.aurora')}${fTog('Parallax hero saat scroll', 'settings.effects.parallax')}${fTog('Animasi intro judul hero', 'settings.effects.heroIntro')}${fTog('Foto produk fade-in + shimmer', 'settings.effects.imgFade')}${fTog('Tombol BAG “membal” saat tambah item', 'settings.effects.bump')}${fTog('Marquee berhenti saat di-hover', 'settings.effects.marqueePause')}</div></div>`;
   }
 
   function vContent() {
     return `<div class="grid2">
-      <div class="box"><h3>Brand</h3>${fText('Nama singkat (logo)', 'settings.brand.name')}${fText('Nama lengkap (wordmark footer)', 'settings.brand.fullName')}${fText('Tagline', 'settings.brand.tagline')}</div>
-      <div class="box"><h3>Hero</h3>${fText('Eyebrow', 'settings.hero.eyebrow')}<div class="row2">${fText('Judul baris 1', 'settings.hero.line1')}${fText('Judul baris 2 (chrome)', 'settings.hero.line2')}</div>${fArea('Sub-teks', 'settings.hero.sub', { rows: 3 })}<div class="row2">${fText('Teks tombol', 'settings.hero.cta')}${fText('Link tombol', 'settings.hero.ctaLink')}</div>${fTog('Tampilkan sticker berputar', 'settings.hero.showSticker')}${fText('Teks sticker', 'settings.hero.sticker')}</div>
+      <div class="box"><h3>Brand</h3>${fText('Nama singkat (logo)', 'settings.brand.name')}${fText('Nama lengkap (wordmark footer)', 'settings.brand.fullName')}${fText('Tagline', 'settings.brand.tagline')}${fSelect('Tampilan logo di navbar', 'settings.brand.logoMode', [['text', 'Teks saja'], ['image', 'Gambar saja'], ['both', 'Gambar + teks']])}${fImage('Logo (PNG/SVG transparan)', 'settings.brand.logoImage', { max: 600, alpha: true })}${fNum('Tinggi logo (px)', 'settings.brand.logoHeight', { min: 12 })}</div>
+      <div class="box"><h3>Hero</h3>${fText('Eyebrow', 'settings.hero.eyebrow')}<div class="row2">${fText('Judul baris 1', 'settings.hero.line1')}${fText('Judul baris 2 (chrome)', 'settings.hero.line2')}</div>${fArea('Sub-teks', 'settings.hero.sub', { rows: 3 })}<div class="row2">${fText('Teks tombol', 'settings.hero.cta')}${fText('Link tombol', 'settings.hero.ctaLink')}</div>${fTog('Tampilkan sticker berputar', 'settings.hero.showSticker')}${fText('Teks sticker', 'settings.hero.sticker')}
+        <div class="row2">${fSelect('Tinggi hero', 'settings.hero.size', [['full', 'Layar penuh'], ['tall', 'Tinggi'], ['compact', 'Ringkas']])}${fSelect('Rata teks', 'settings.hero.align', [['left', 'Kiri'], ['center', 'Tengah']])}</div>
+        ${fImage('Gambar latar hero (opsional)', 'settings.hero.bgImage', { max: 1920 })}${fRange('Gelapkan gambar latar', 'settings.hero.bgOverlay', 0, 0.95, 0.05)}
+        ${fTog('Ilustrasi bintang animasi', 'settings.hero.showArt')}${fTog('Baris meta bawah (N°001 / SCROLL / tahun)', 'settings.hero.showMeta')}<div class="row3">${fText('Meta kiri', 'settings.hero.metaLeft')}${fText('Meta tengah', 'settings.hero.metaCenter')}${fText('Meta kanan (kosong = tahun)', 'settings.hero.metaRight')}</div></div>
       <div class="box"><h3>Announcement & Marquee</h3>${fTog('Tampilkan announcement bar', 'settings.announcement.enabled')}${fText('Teks announcement', 'settings.announcement.text')}<div class="row2">${fText('Link (opsional)', 'settings.announcement.link', { ph: '#shop atau https://…' })}${fSelect('Gaya warna', 'settings.announcement.style', [['accent', 'Aksen'], ['dark', 'Gelap'], ['alert', 'Merah (promo)']])}</div>${fTog('Bisa ditutup pengunjung (✕)', 'settings.announcement.dismissible')}${fText('Teks marquee (berjalan)', 'settings.marquee.text')}${fRange('Durasi marquee (detik, makin kecil makin cepat)', 'settings.marquee.speed', 8, 80, 1)}</div>
-      <div class="box"><h3>Drop Countdown</h3>${fText('Judul', 'settings.drop.title')}${fText('Catatan', 'settings.drop.note')}${fText('Tanggal & waktu drop', 'settings.drop.date', { type: 'datetime-local' })}<p class="hint">Setelah waktunya lewat, hitung mundur menampilkan 00 berwarna aksen (LIVE).</p></div>
+      <div class="box"><h3>Drop Countdown</h3>${fText('Judul', 'settings.drop.title')}${fText('Kicker (teks kecil di atas judul)', 'settings.drop.kicker', { ph: '[ 01 — NEXT DROP IN ]' })}${fText('Catatan', 'settings.drop.note')}${fDate('Tanggal & waktu drop', 'settings.drop.date', { req: true })}<p class="hint">Setelah waktunya lewat, hitung mundur menampilkan 00 berwarna aksen (LIVE).</p></div>
       <div class="box"><h3>Katalog</h3>${fText('Kicker', 'settings.shop.kicker')}${fText('Judul seksi', 'settings.shop.title')}</div>
       <div class="box"><h3>About / Manifesto</h3>${fText('Kicker', 'settings.about.kicker')}${fArea('Judul (Enter = baris baru)', 'settings.about.title', { rows: 2 })}${fArea('Teks', 'settings.about.text', { rows: 5 })}</div>
-      <div class="box"><h3>Newsletter & Footer</h3>${fText('Judul newsletter', 'settings.footer.newsletterTitle')}${fText('Teks newsletter', 'settings.footer.newsletterText')}${fText('Teks footer', 'settings.footer.text')}</div>
+      <div class="box"><h3>Newsletter & Footer</h3>${fText('Judul newsletter', 'settings.footer.newsletterTitle')}${fText('Teks newsletter', 'settings.footer.newsletterText')}${fText('Teks footer', 'settings.footer.text')}${fText('Kicker newsletter', 'settings.footer.newsletterKicker')}${fTog('Tulisan raksasa di footer', 'settings.footer.showWordmark')}${fText('Teks tulisan raksasa (kosong = nama lengkap)', 'settings.footer.wordmark')}${fTog('Link BACK TO TOP', 'settings.footer.showBackTop')}</div>
       <div class="box"><h3>Sosial Media</h3><p class="hint">Pengaturan ${T.socialLinks().length} link aktif — nyalakan/matikan tiap platform (Instagram, TikTok, WhatsApp, YouTube, dll) di tab khusus.</p><button class="btn acc" data-a="go-social">BUKA SOSIAL MEDIA →</button></div></div>`;
   }
 
@@ -254,24 +283,25 @@
     const vrows = vs.length ? vs.map((v, i) => `<div class="vrow2">
         ${fText('Kode', `settings.vouchers.${i}.code`, { ph: 'TRSH10' })}${fSelect('Jenis', `settings.vouchers.${i}.type`, [['percent', 'Persen (%)'], ['amount', 'Nominal (Rp)'], ['ship', 'Gratis ongkir']])}
         ${fNum('Nilai', `settings.vouchers.${i}.value`, { min: 0 })}${fNum('Min. belanja', `settings.vouchers.${i}.minSpend`, { min: 0 })}${fNum('Maks. potongan (Rp, untuk %)', `settings.vouchers.${i}.maxDiscount`, { min: 0 })}
-        ${fText('Kedaluwarsa', `settings.vouchers.${i}.expires`, { type: 'datetime-local' })}
+        ${fDate('Kedaluwarsa', `settings.vouchers.${i}.expires`)}
         ${fTog('Aktif', `settings.vouchers.${i}.active`)}<button class="btn sm danger" data-a="v-del" data-i="${i}">✕</button></div>`).join('') : '<p class="hint dim">Belum ada voucher.</p>';
     return `<div class="grid2">
       <div class="box wide"><h3>Promo Global / Flash Sale ${ps.on ? '<span class="pill ok">SEDANG AKTIF</span>' : '<span class="pill">TIDAK AKTIF</span>'}</h3>
         <p class="hint">Diskon otomatis untuk semua produk atau kategori tertentu, tanpa edit satu per satu. Jika sebuah produk juga punya diskon sendiri, harga <b>termurah</b> yang dipakai. Jadwal mulai/berakhir diterapkan otomatis (harga di toko berubah sendiri, tanpa reload).</p>
         ${fTog('Aktifkan promo global', 'settings.promo.enabled')}
         <div class="row3">${fText('Label', 'settings.promo.label', { ph: 'FLASH SALE' })}${fSelect('Jenis potongan', 'settings.promo.type', [['percent', 'Persen (%)'], ['amount', 'Nominal (Rp)']])}${fNum('Nilai', 'settings.promo.value', { min: 0 })}</div>
-        <div class="row2">${fText('Mulai (opsional)', 'settings.promo.start', { type: 'datetime-local' })}${fText('Berakhir (opsional)', 'settings.promo.end', { type: 'datetime-local' })}</div>
+        <div class="row2">${fDate('Mulai', 'settings.promo.start')}${fDate('Berakhir', 'settings.promo.end')}</div>
         ${scope}${catList}
         ${fTog('Banner promo + countdown di atas toko', 'settings.promo.banner')}${fText('Teks tambahan banner', 'settings.promo.bannerText')}</div>
       <div class="box"><h3>Tampilan Harga Diskon</h3>${fTog('Tampilkan harga coret', 'settings.store.showStrike', 'Harga normal dicoret di samping harga diskon')}${fTog('Tampilkan “HEMAT Rp …”', 'settings.store.showSavings')}${fSelect('Badge diskon di kartu', 'settings.store.discountBadge', [['percent', 'Persen (−30%)'], ['amount', 'Nominal (−Rp 50.000)'], ['label', 'Teks SALE'], ['none', 'Tanpa badge']])}${fTog('Chip filter “✦ SALE”', 'settings.store.saleChip')}${fSelect('Pembulatan harga diskon (%/nominal)', 'settings.store.roundTo', [[0, 'Tanpa pembulatan'], [100, 'Ke Rp 100 terdekat'], [500, 'Ke Rp 500 terdekat'], [1000, 'Ke Rp 1.000 terdekat']], true)}</div>
       <div class="box"><h3>Produk Sedang Diskon (${sale.length})</h3>${sale.length ? sale.map((p) => { const x = T.pricing(p); return `<div class="tg" style="cursor:default"><span><b>${esc(p.name)}</b><small>${money(x.price)} <s>${money(x.orig)}</s> · ${x.src === 'promo' ? 'promo global' : 'diskon produk'}${x.end ? ' · s/d ' + new Date(x.end).toLocaleString('id-ID') : ''}</small></span><span class="pill ok">−${x.pct}%</span></div>`; }).join('') : '<p class="hint">Belum ada produk berdiskon. Atur diskon per produk di tab Produk → Edit, atau aktifkan promo global.</p>'}</div>
       <div class="box wide"><h3>Kode Voucher <button class="btn sm" data-a="v-add">+ TAMBAH</button></h3>
         <p class="hint">Pembeli memasukkan kode di keranjang. Potongan dihitung dari subtotal setelah diskon produk. Catatan: daftar voucher ikut tersimpan di pengaturan toko yang bersifat publik — jangan jadikan kode ini rahasia.</p>${vrows}</div>
-      <div class="box wide"><h3>Popup Promo</h3><p class="hint">Popup sambutan satu kali (sesuai frekuensi) setelah toko terbuka. Kode di popup bisa diklik pembeli untuk otomatis terpasang di keranjang.</p>
-        ${fTog('Aktifkan popup', 'settings.popup.enabled')}<div class="row2">${fText('Judul', 'settings.popup.title')}${fText('Kode voucher (opsional)', 'settings.popup.code', { ph: 'TRSH10' })}</div>${fArea('Teks', 'settings.popup.text', { rows: 2 })}
-        <div class="row3">${fText('Teks tombol', 'settings.popup.cta')}${fText('Link tombol', 'settings.popup.link')}${fNum('Tunda (detik)', 'settings.popup.delay', { min: 0 })}</div>
-        ${fSelect('Frekuensi tampil', 'settings.popup.frequency', [['session', 'Sekali per sesi browser'], ['once', 'Sekali saja per pengunjung'], ['always', 'Setiap kali toko dibuka']])}</div></div>`;
+      <div class="box wide"><h3>Popup Promo <button class="btn sm acc" data-a="pp-test">▶ TES POPUP DI PREVIEW</button></h3><p class="hint">Popup sambutan/promo. Kode di popup bisa diklik pembeli untuk otomatis terpasang di keranjang. Jika isi popup kamu ubah, pengunjung lama akan melihatnya lagi.</p>
+        ${fTog('Aktifkan popup', 'settings.popup.enabled')}<div class="row2">${fText('Judul', 'settings.popup.title')}${fText('Kode voucher (opsional)', 'settings.popup.code', { ph: 'TRSH10' })}</div>${fArea('Teks', 'settings.popup.text', { rows: 2 })}${fImage('Gambar popup (opsional)', 'settings.popup.image', { max: 1000, alpha: true })}
+        <div class="row3">${fText('Teks tombol', 'settings.popup.cta')}${fText('Link tombol', 'settings.popup.link')}${fText('Teks tutup', 'settings.popup.closeText')}</div>
+        <div class="row3">${fSelect('Muncul saat', 'settings.popup.trigger', [['delay', 'Setelah jeda waktu'], ['scroll', 'Setelah scroll'], ['exit', 'Kursor keluar halaman (desktop)']])}${fNum('Jeda (detik)', 'settings.popup.delay', { min: 0 })}${fNum('Scroll (% halaman)', 'settings.popup.scrollPct', { min: 5 })}</div>
+        <div class="row3">${fSelect('Posisi', 'settings.popup.position', [['center', 'Tengah (modal)'], ['corner', 'Pojok kanan bawah'], ['bar', 'Bar bawah']])}${fSelect('Frekuensi tampil', 'settings.popup.frequency', [['session', 'Sekali per sesi browser'], ['once', 'Sekali saja per pengunjung'], ['always', 'Setiap kali toko dibuka']])}${fTog('Tampil di HP', 'settings.popup.mobile')}</div></div></div>`;
   }
 
   /* ---------------- Sosial Media ---------------- */
@@ -296,7 +326,7 @@
 
   /* ---------------- Lanjutan: urutan seksi, SEO, tracking, label ---------------- */
   const SEC_NAMES = { hero: 'Hero', marquee: 'Marquee', drop: 'Drop countdown', shop: 'Katalog produk', extra: 'Blok HTML tambahan', about: 'About / Manifesto', newsletter: 'Newsletter' };
-  const LABEL_NAMES = { navShop: 'Menu: katalog', navDrop: 'Menu: drop', navAbout: 'Menu: about', navJoin: 'Menu: join', bag: 'Tombol keranjang', search: 'Label cari', searchPh: 'Placeholder cari', all: 'Chip semua', saved: 'Chip saved', sale: 'Chip/badge sale', newest: 'Sort: terbaru', priceLow: 'Sort: termurah', priceHigh: 'Sort: termahal', az: 'Sort: A-Z', addToBag: 'Tombol tambah', soldOut: 'Teks habis', inStock: 'Teks tersedia', onlyLeft: 'Sisa stok ({n})', size: 'Label ukuran', qty: 'Label qty', yourBag: 'Judul keranjang', bagEmpty: 'Keranjang kosong', remove: 'Hapus item', subtotal: 'Subtotal', total: 'Total', shipping: 'Ongkir', free: 'Gratis', youSave: 'Hemat', checkout: 'Tombol checkout', loadMore: 'Load more', noResult: 'Tidak ada hasil', voucher: 'Placeholder voucher', apply: 'Tombol pakai', subscribe: 'Tombol subscribe', emailPh: 'Placeholder email', added: 'Toast tambah', menu: 'Menu mobile' };
+  const LABEL_NAMES = { navShop: 'Menu: katalog', navDrop: 'Menu: drop', navAbout: 'Menu: about', navJoin: 'Menu: join', bag: 'Tombol keranjang', search: 'Label cari', searchPh: 'Placeholder cari', all: 'Chip semua', saved: 'Chip saved', sale: 'Chip/badge sale', newest: 'Sort: terbaru', priceLow: 'Sort: termurah', priceHigh: 'Sort: termahal', az: 'Sort: A-Z', addToBag: 'Tombol tambah', soldOut: 'Teks habis', inStock: 'Teks tersedia', onlyLeft: 'Sisa stok ({n})', size: 'Label ukuran', qty: 'Label qty', yourBag: 'Judul keranjang', bagEmpty: 'Keranjang kosong', remove: 'Hapus item', subtotal: 'Subtotal', total: 'Total', shipping: 'Ongkir', free: 'Gratis', youSave: 'Hemat', checkout: 'Tombol checkout', loadMore: 'Load more', noResult: 'Tidak ada hasil', voucher: 'Placeholder voucher', apply: 'Tombol pakai', subscribe: 'Tombol subscribe', emailPh: 'Placeholder email', added: 'Toast tambah', menu: 'Menu mobile', scroll: 'Hero: teks scroll', backTop: 'Footer: back to top', days: 'Countdown: hari', hrs: 'Countdown: jam', min: 'Countdown: menit', sec: 'Countdown: detik', usecode: 'Popup: pakai kode' };
   function vAdvanced() {
     const order = T.sectionOrder();
     const sec = order.map((k, i) => `<div class="crow" style="grid-template-columns:28px 1fr auto auto"><span class="mono dim">${i + 1}</span><b>${esc(SEC_NAMES[k])}</b><span class="pill ${S().sections[k] ? 'ok' : 'no'}">${S().sections[k] ? 'TAMPIL' : 'MATI'}</span><div class="acts" style="display:flex;gap:6px"><button class="btn sm" data-a="sec-up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn sm" data-a="sec-dn" data-i="${i}" ${i === order.length - 1 ? 'disabled' : ''}>↓</button></div></div>`).join('');
@@ -356,7 +386,7 @@
   function go(t) { tab = t; sessionStorage.setItem('trsh_tab', t); render(); $('#view').scrollTop = 0; }
 
   /* ---------------- image upload ---------------- */
-  function fileToData(file, max) {
+  function fileToData(file, max, alpha) {
     return new Promise((res, rej) => {
       const fr = new FileReader();
       fr.onerror = rej;
@@ -367,8 +397,10 @@
           const k = Math.min(1, max / Math.max(im.width, im.height));
           const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
           c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-          if (T.remote && T.auth.isAdmin()) c.toBlob((b) => { if (!b) rej(new Error('Gagal memproses gambar')); else T.uploadImage(b).then(res, rej); }, 'image/jpeg', 0.85);
-          else res(c.toDataURL('image/jpeg', 0.82));
+          const keep = !!alpha && /^image\/(png|webp|gif|svg)/.test(file.type); // logo transparan tetap PNG
+          const mime = keep ? 'image/png' : 'image/jpeg';
+          if (T.remote && T.auth.isAdmin()) c.toBlob((b) => { if (!b) rej(new Error('Gagal memproses gambar')); else T.uploadImage(b).then(res, rej); }, mime, 0.85);
+          else res(c.toDataURL(mime, 0.82));
         };
         im.src = fr.result;
       };
@@ -403,6 +435,20 @@
       case 'go-products-new': go('products'); addProduct(); break;
       case 'go-categories': go('categories'); break;
       case 'go-promo': go('promo'); break;
+      case 'd-set': {
+        const path = el.dataset.path, v = el.dataset.clear ? '' : new Date(Date.now() + Number(el.dataset.add)).toISOString();
+        T.set(path, v);
+        const inp = document.querySelector('input[type=datetime-local][data-path="' + path + '"]'); if (inp) inp.value = isoToLocal(v);
+        if (editing >= 0) refreshSalePrev();
+        flashSaved(); break;
+      }
+      case 'img-clear': T.set(el.dataset.path, ''); render(); flashSaved(); break;
+      case 'pp-test': {
+        if (!document.body.classList.contains('pv-on')) togglePreview();
+        const f = $('#pvFrame'); let n = 0;
+        const go2 = () => { try { f.contentWindow.TRSH_UI.showPopup(); } catch (x) { if (++n < 24) setTimeout(go2, 250); else toast('Preview belum siap — coba lagi'); } };
+        go2(); break;
+      }
       case 'go-social': go('social'); break;
       case 'v-add': T.update((x) => x.settings.vouchers.push({ id: T.uid('v'), code: 'PROMO' + Math.floor(Math.random() * 90 + 10), type: 'percent', value: 10, minSpend: 0, maxDiscount: 0, expires: '', active: true })); render(); flashSaved(); break;
       case 'v-del': T.update((x) => x.settings.vouchers.splice(i, 1)); render(); flashSaved(); break;
@@ -428,7 +474,7 @@
       case 'p-close': closeEditor(); break;
       case 'p-dup': T.update((x) => { const c = JSON.parse(JSON.stringify(x.products[i])); c.id = T.uid('p'); c.name += ' (COPY)'; c.createdAt = Date.now(); x.products.splice(i + 1, 0, c); }); $('#ptbody').innerHTML = productRows(); flashSaved(); break;
       case 'p-del':
-        if (confirm('Hapus produk “' + d.products[i].name + '”?')) { closeEditor(); T.update((x) => x.products.splice(i, 1)); if (tab === 'products') $('#ptbody').innerHTML = productRows(); else render(); flashSaved(); }
+        ask('Hapus produk “' + d.products[i].name + '”?').then((ok) => { if (!ok) return; closeEditor(); T.update((x) => x.products.splice(i, 1)); if (tab === 'products') $('#ptbody').innerHTML = productRows(); else render(); flashSaved(); });
         break;
       case 'img-del': T.update((x) => x.products[editing].images.splice(Number(el.dataset.k), 1)); openEditor(editing); flashSaved(); break;
       case 'img-main': T.update((x) => { const im = x.products[editing].images; im.unshift(im.splice(Number(el.dataset.k), 1)[0]); }); openEditor(editing); flashSaved(); break;
@@ -444,9 +490,10 @@
       case 'c-dn': T.update((x) => { x.categories.splice(i + 1, 0, x.categories.splice(i, 1)[0]); }); render(); flashSaved(); break;
       case 'c-del': {
         const c = d.categories[i], used = d.products.filter((p) => p.category === c.id).length;
-        if (confirm('Hapus kategori “' + c.name + '”?' + (used ? '\n' + used + ' produk akan menjadi tanpa kategori.' : ''))) {
+        ask('Hapus kategori “' + c.name + '”?' + (used ? '\n' + used + ' produk akan menjadi tanpa kategori.' : '')).then((ok) => {
+          if (!ok) return;
           T.update((x) => { x.products.forEach((p) => { if (p.category === c.id) p.category = ''; }); x.categories.splice(i, 1); }); render(); flashSaved();
-        }
+        });
         break;
       }
 
@@ -458,8 +505,8 @@
       case 'f-del': T.update((x) => x.settings.custom.flags.splice(i, 1)); render(); flashSaved(); break;
 
       /* orders */
-      case 'o-del': if (confirm('Hapus pesanan ini?')) { T.orders.remove(el.dataset.id); render(); } break;
-      case 'o-clear': if (confirm('Hapus SEMUA pesanan?')) { T.orders.clear(); render(); } break;
+      case 'o-del': ask('Hapus pesanan ini?').then((ok) => { if (ok) { T.orders.remove(el.dataset.id); render(); } }); break;
+      case 'o-clear': ask('Hapus SEMUA pesanan?\nTindakan ini tidak bisa dibatalkan.').then((ok) => { if (ok) { T.orders.clear(); render(); } }); break;
       case 'o-csv': {
         const rows = [['id', 'waktu', 'status', 'subtotal', 'diskon_produk', 'voucher', 'diskon_voucher', 'ongkir', 'total', 'item']].concat(T.orders.list().map((o) => { const m = o.meta || {}; return [o.id, new Date(o.time).toISOString(), o.status, m.subtotal || '', m.itemDiscount || 0, m.voucher || '', m.voucherDiscount || 0, m.shipping || 0, o.total, o.items.map((it) => `${it.name}${it.size ? ' [' + it.size + ']' : ''} x${it.qty} @${it.price}`).join(' | ')]; }));
         dl('trsh-orders.csv', rows.map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n'), 'text/csv'); break;
@@ -476,7 +523,7 @@
         }
         if (v.length < 4) { toast('Minimal 4 karakter'); break; } T.set('settings.admin.password', v); $('#newPw').value = ''; toast('PASSWORD DIPERBARUI ✦'); break; }
       case 'exp': dl('trsh-backup-' + new Date().toISOString().slice(0, 10) + '.json', T.exportJSON()); break;
-      case 'reset': if (confirm('Reset semua produk, kategori, dan pengaturan ke default?')) { T.reset(); render(); toast('RESET SELESAI'); } break;
+      case 'reset': ask('Reset semua produk, kategori, dan pengaturan ke default?\nPesanan tidak ikut dihapus.', 'RESET').then((ok) => { if (ok) { T.reset(); render(); toast('RESET SELESAI'); } }); break;
     }
   });
 
@@ -489,6 +536,17 @@
     if (tab === 'products') $('#ptbody').innerHTML = productRows();
     openEditor(0);
   }
+
+  /* upload gambar untuk kolom gambar (logo, hero, popup) */
+  document.addEventListener('change', async (e) => {
+    const el = e.target;
+    if (!el.matches || !el.matches('input[data-up]')) return;
+    const f = el.files && el.files[0]; if (!f) return;
+    toast('MEMPROSES GAMBAR…');
+    try { const u = await fileToData(f, Number(el.dataset.max) || 1600, !!el.dataset.alpha); T.set(el.dataset.up, u); render(); flashSaved(); toast('GAMBAR DIPASANG ✦'); }
+    catch (err) { console.error(err); toast('GAGAL MEMPROSES GAMBAR'); }
+    el.value = '';
+  });
 
   /* ---------------- preview ---------------- */
   function togglePreview() {

@@ -38,7 +38,8 @@
     const t = $('#toast'); t.textContent = msg; t.classList.add('on');
     clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2400);
   }
-  const lock = () => document.body.classList.toggle('locked', !!(st.open || $('#drawer').classList.contains('open') || $('#popup').classList.contains('open')));
+  const popupModal = () => { const el = $('#popup'); return el.classList.contains('open') && el.classList.contains('pos-center'); };
+  const lock = () => document.body.classList.toggle('locked', !!(st.open || $('#drawer').classList.contains('open') || popupModal()));
 
   /* ---------------- tracking (opsional: GA4 / Meta Pixel) ---------------- */
   let trackOn = false;
@@ -91,6 +92,18 @@
     b.toggle('card-flat', t.cardStyle === 'flat');
     b.toggle('img-contain', t.imgFit === 'contain');
     b.toggle('nav-static', t.navSticky === false);
+    const g = t.glass || {};
+    const lum = (hex) => { const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(String(hex || '')); return m ? (0.299 * parseInt(m[1], 16) + 0.587 * parseInt(m[2], 16) + 0.114 * parseInt(m[3], 16)) / 255 : 0; };
+    const ink = lum(t.bg) > 0.55 ? '0,0,0' : '255,255,255';
+    r.setProperty('--g-blur', (Number(g.blur) || 0) + 'px');
+    r.setProperty('--g-sat', String(g.saturate || 1.4));
+    r.setProperty('--g-bg', 'color-mix(in srgb, ' + t.card + ' ' + Math.round((Number(g.opacity) || 0) * 100) + '%, transparent)');
+    r.setProperty('--g-bg-s', 'color-mix(in srgb, ' + t.bg + ' ' + Math.round(Math.max(0.78, Number(g.opacity) || 0) * 100) + '%, transparent)'); // panel besar: lebih pekat agar teks terbaca
+    r.setProperty('--g-border', 'rgba(' + ink + ',' + (Number(g.border) || 0) + ')');
+    b.toggle('glass', !!g.on);
+    ['nav', 'cards', 'panels', 'ui'].forEach((k) => b.toggle('glass-' + k, !!g.on && g[k] !== false));
+    ['lift', 'zoom', 'glow', 'none'].forEach((k) => b.toggle('hv-' + k, (t.cardHover || 'lift') === k));
+    ['up', 'fade', 'zoom', 'slide', 'blur'].forEach((k) => b.toggle('rvs-' + k, (t.revealStyle || 'up') === k));
     $('#custom-css').textContent = s.custom.css || '';
 
     prevFlags.forEach((k) => { document.body.removeAttribute('data-f-' + k); r.removeProperty('--c-' + k); });
@@ -154,12 +167,16 @@
     setHTML(an, `<span class="dot"></span>${link ? `<a href="${esc(link)}">${esc(a.text)}</a>` : esc(a.text)}${a.dismissible ? '<button class="an-x" data-act="an-close" aria-label="Tutup">✕</button>' : ''}`);
 
     renderPromoBar();
-    $('#logo').innerHTML = '<span>' + esc(s.brand.name) + '</span><i>✦</i>';
+    const bl = s.brand, lsrc = T.safeImg(bl.logoImage), lm = lsrc ? (bl.logoMode || 'text') : 'text';
+    setHTML($('#logo'), (lm !== 'text' ? `<img class="logo-img" src="${esc(lsrc)}" alt="${esc(bl.name)}" style="height:${Number(bl.logoHeight) || 28}px">` : '') + (lm !== 'image' ? '<span>' + esc(bl.name) + '</span><i>✦</i>' : ''));
     const names = { shop: L('navShop'), drop: L('navDrop'), about: L('navAbout'), newsletter: L('navJoin') };
     const links = T.sectionOrder().filter((k) => names[k] && s.sections[k]).map((k) => [k, names[k]]);
     setHTML($('#links'), links.map((l) => `<a href="#${l[0]}">${esc(l[1])}</a>`).join(''));
     $('#menuBtn').hidden = !links.length;
-    $('#cartBtn').innerHTML = esc(L('bag')) + ' <b id="cartN">' + st.cart.reduce((x, c) => x + c.qty, 0) + '</b>';
+    const cn = st.cart.reduce((x, c) => x + c.qty, 0);
+    $('#cartBtn').innerHTML = esc(L('bag')) + ' <b id="cartN">' + cn + '</b>';
+    if (st.lastN != null && cn > st.lastN) { const cb = $('#cartBtn'); cb.classList.remove('bump'); void cb.offsetWidth; cb.classList.add('bump'); }
+    st.lastN = cn;
     $('#cartBtn').hidden = !s.store.cart;
     $('#wishBtn').hidden = !s.store.wishlist;
     $('#wishN').textContent = st.wish.length;
@@ -207,8 +224,14 @@
       sticker = `<div class="sticker"><svg viewBox="0 0 200 200"><defs><path id="cp" d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0"/></defs><text><textPath href="#cp" textLength="500" lengthAdjust="spacing">${esc(tx)}</textPath></text></svg></div>`;
     }
     const cta = T.safeUrl(h.ctaLink) || '#shop';
-    setHTML($('#hero'), `
-      <div class="hero-bg"><div class="spark">${SPARK}</div></div>
+    const bg = T.safeImg(h.bgImage);
+    const ov = Math.min(1, Math.max(0, Number(h.bgOverlay)));
+    const hero = $('#hero');
+    hero.className = 'hero hero-' + (h.size || 'full') + ' ha-' + (h.align === 'center' ? 'center' : 'left') + (bg ? ' has-bg' : '');
+    const metaR = h.metaRight || String(new Date().getFullYear());
+    setHTML(hero, `
+      ${bg ? `<div class="hero-img" style="background-image:url('${esc(bg).replace(/'/g, '%27')}')"></div><div class="hero-shade" style="opacity:${isNaN(ov) ? 0.55 : ov}"></div>` : ''}
+      <div class="hero-bg">${h.showArt !== false ? `<div class="spark">${SPARK}</div>` : ''}</div>
       <div class="hero-in">
         <p class="mono eyebrow">${esc(h.eyebrow)}</p>
         <h1 class="hero-t"><span class="gl" data-text="${esc(h.line1)}">${esc(h.line1)}</span><span class="gl chrome" data-text="${esc(h.line2)}">${esc(h.line2)}</span></h1>
@@ -216,8 +239,20 @@
         ${(s.socialCfg || {}).hero ? socialHTML('hero-soc mono') : ''}
       </div>
       ${sticker}
-      <div class="hero-meta mono"><span>N°001</span><span>SCROLL ↓</span><span>${new Date().getFullYear()}</span></div>`);
+      ${h.showMeta !== false ? `<div class="hero-meta mono"><span>${esc(h.metaLeft)}</span><span>${esc(h.metaCenter || L('scroll'))}</span><span>${esc(metaR)}</span></div>` : ''}`);
+    fitHero();
   }
+  // judul hero raksasa: kecilkan otomatis bila teks panjang agar tidak terpotong di tepi layar
+  function fitHero() {
+    const t = $('.hero-t'), box = $('.hero-in');
+    if (!t || !box) return;
+    t.style.fontSize = '';
+    const base = parseFloat(getComputedStyle(t).fontSize) || 100, avail = box.clientWidth;
+    const w = Math.max.apply(null, $$('.hero-t .gl').map((g) => g.scrollWidth));
+    if (avail > 0 && w > avail) t.style.fontSize = Math.floor(base * (avail / w) * 0.97) + 'px';
+  }
+  addEventListener('resize', () => fitHero());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitHero());
 
   function renderMarquee() {
     const m = S().marquee;
@@ -229,8 +264,8 @@
   function renderDrop() {
     const d = S().drop;
     setHTML($('#drop'), `
-      <div><p class="mono kicker">[ 01 — ${esc(d.title)} ]</p><h2 class="chrome">${esc(d.title)}</h2><p class="note">${esc(d.note)}</p></div>
-      <div class="cd" id="cd"><div><b data-u="d">00</b><small>DAYS</small></div><div><b data-u="h">00</b><small>HRS</small></div><div><b data-u="m">00</b><small>MIN</small></div><div><b data-u="s">00</b><small>SEC</small></div></div>`);
+      <div><p class="mono kicker">${esc(d.kicker || '[ 01 — ' + d.title + ' ]')}</p><h2 class="chrome">${esc(d.title)}</h2><p class="note">${esc(d.note)}</p></div>
+      <div class="cd" id="cd"><div><b data-u="d">00</b><small>${esc(L('days'))}</small></div><div><b data-u="h">00</b><small>${esc(L('hrs'))}</small></div><div><b data-u="m">00</b><small>${esc(L('min'))}</small></div><div><b data-u="s">00</b><small>${esc(L('sec'))}</small></div></div>`);
     tick();
   }
   function tick() {
@@ -317,7 +352,7 @@
     return `<article class="card rv ${out ? 'soldout' : ''}" data-id="${esc(p.id)}" style="--i:${i % 8}" tabindex="0" role="button" aria-label="${esc(p.name)}">
       <div class="card-media"><div class="badges">${badges.join('')}</div>
         <button class="wish ${st.wish.indexOf(p.id) >= 0 ? 'on' : ''}" data-wish="${esc(p.id)}" aria-label="Save" tabindex="-1">${st.wish.indexOf(p.id) >= 0 ? '♥' : '♡'}</button>
-        <img class="m1" src="${esc(im[0])}" alt="${esc(p.name)}" loading="lazy" decoding="async">${im[1] ? `<img class="m2" src="${esc(im[1])}" alt="" loading="lazy" decoding="async">` : ''}</div>
+        <img class="m1" src="${esc(im[0])}" alt="${esc(p.name)}" loading="lazy" decoding="async" onload="this.classList.add('ld')" onerror="this.classList.add('ld')">${im[1] ? `<img class="m2" src="${esc(im[1])}" alt="" loading="lazy" decoding="async">` : ''}</div>
       <div class="card-info"><div><h3>${esc(p.name)}</h3><p class="mono cat">${esc(catName(p.category))}</p></div>${priceHTML(p)}</div>
     </article>`;
   }
@@ -330,17 +365,31 @@
   }
   function renderNews() {
     const f = S().footer;
-    setHTML($('#newsletter'), `<div class="rv"><p class="mono kicker">[ 04 — NEWSLETTER ]</p><h2>${esc(f.newsletterTitle)}</h2><p>${esc(f.newsletterText)}</p>
+    setHTML($('#newsletter'), `<div class="rv"><p class="mono kicker">${esc(f.newsletterKicker || '[ 04 — NEWSLETTER ]')}</p><h2>${esc(f.newsletterTitle)}</h2><p>${esc(f.newsletterText)}</p>
       <form class="nl" id="nlForm"><input type="email" name="email" placeholder="${esc(L('emailPh'))}" aria-label="Email" required><button type="submit">${esc(L('subscribe'))}</button></form></div>`);
     reveal();
   }
   function renderFooter() {
-    const s = S();
+    const s = S(), f = s.footer;
     const fl = (s.socialCfg || {}).footer !== false;
+    const wm = f.wordmark || s.brand.fullName;
     setHTML($('#footer'), `<div class="foot-top mono">${fl ? socialHTML('foot-soc') : '<span></span>'}<span>${esc(s.brand.tagline)}</span></div>
-      <div class="wordmark chrome">${esc(s.brand.fullName)}</div>
-      <div class="foot-b mono"><span>${esc(s.footer.text)}</span><a href="#top">BACK TO TOP ↑</a></div>`);
+      ${f.showWordmark !== false ? `<div class="wordmark chrome"><span id="wmText">${esc(wm)}</span></div>` : ''}
+      <div class="foot-b mono"><span>${esc(f.text)}</span>${f.showBackTop !== false ? `<a href="#top">${esc(L('backTop'))}</a>` : ''}</div>`);
+    fitWordmark();
   }
+  // tulisan raksasa di footer: kecilkan otomatis agar selalu muat (tidak terpotong)
+  function fitWordmark() {
+    const box = $('.wordmark'), tx = $('#wmText');
+    if (!box || !tx) return;
+    box.style.fontSize = '';
+    const base = parseFloat(getComputedStyle(box).fontSize) || 100;
+    const avail = box.clientWidth, w = tx.getBoundingClientRect().width;
+    if (avail > 0 && w > avail) box.style.fontSize = Math.floor(base * (avail / w) * 0.98) + 'px';
+  }
+  addEventListener('resize', () => fitWordmark());
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitWordmark());
+
   function renderExtra() {
     const el = $('#extra'), c = S().custom;
     el.hidden = !(S().sections.extra && c.extraHtml);
@@ -367,7 +416,7 @@
     renderModal();
     $('#modal').classList.add('open'); $('#modal').setAttribute('aria-hidden', 'false');
     $('#scrim').classList.add('on'); lock();
-    setTimeout(() => { const x = $('#modal .md-x'); if (x) x.focus({ preventScroll: true }); }, 60);
+    setTimeout(() => { const m = $('#modal .md'); if (m) m.focus({ preventScroll: true }); }, 60);
   }
   function renderModal() {
     const p = prod(st.open);
@@ -379,7 +428,7 @@
     const lim = limitOf(p);
     st.qty = Math.min(Math.max(1, st.qty), Math.max(1, lim));
     const closed = s.ordering === false;
-    setHTML($('#modal'), `<div class="md" role="dialog" aria-modal="true" aria-label="${esc(p.name)}">
+    setHTML($('#modal'), `<div class="md" role="dialog" aria-modal="true" aria-label="${esc(p.name)}" tabindex="-1">
       <button class="x md-x" data-act="close" aria-label="Close">✕</button>
       <div class="md-g"><div class="md-main"><div class="badges">${out ? '' : saleBadge(x)}</div><img src="${esc(im[st.img] || im[0])}" alt="${esc(p.name)}"></div>
         ${im.length > 1 ? `<div class="md-th">${im.map((u, i) => `<img src="${esc(u)}" data-th="${i}" class="${i === st.img ? 'on' : ''}" alt="">`).join('')}</div>` : ''}</div>
@@ -519,8 +568,9 @@
   }
   function closeAll() {
     st.open = null;
-    $('#drawer').classList.remove('open'); $('#modal').classList.remove('open'); $('#popup').classList.remove('open');
-    $('#drawer').setAttribute('aria-hidden', 'true'); $('#modal').setAttribute('aria-hidden', 'true'); $('#popup').setAttribute('aria-hidden', 'true');
+    $('#drawer').classList.remove('open'); $('#modal').classList.remove('open');
+    $('#drawer').setAttribute('aria-hidden', 'true'); $('#modal').setAttribute('aria-hidden', 'true');
+    if (popupModal()) closePopup(); // popup sudut/bar boleh tetap tampil; popup tengah ikut tertutup
     $('#scrim').classList.remove('on'); lock();
     if (st.lastFocus && st.lastFocus.focus) { try { st.lastFocus.focus({ preventScroll: true }); } catch (e) {} st.lastFocus = null; }
   }
@@ -536,31 +586,70 @@
   }
 
   /* ---------------- popup promo ---------------- */
-  let popupShown = false;
-  function maybePopup() {
+  const popup = { armed: false, done: false };
+  const hash = (str) => { let h = 5381; for (let k = 0; k < str.length; k++) h = ((h << 5) + h + str.charCodeAt(k)) | 0; return (h >>> 0).toString(36); };
+  // kunci "sudah dilihat" mengikuti isi popup → popup yang diedit akan tampil lagi ke pengunjung lama
+  const popupKey = (p) => 'trsh_pp_' + hash([p.title, p.text, p.code, p.cta, p.image].join('|'));
+  function popupAllowed(p) {
+    if (!p || !p.enabled || (!p.title && !p.text)) return false;
+    if (S().store.maintenance && !PREVIEW) return false;
+    if (p.mobile === false && window.innerWidth < 700) return false;
+    if (PREVIEW) return true;
+    const k = popupKey(p);
+    if (p.frequency === 'once' && ls(k, '')) return false;
+    if (p.frequency !== 'always' && p.frequency !== 'once' && ss(k)) return false;
+    return true;
+  }
+  const overlayOpen = () => !!st.open || $('#drawer').classList.contains('open');
+  function schedulePopup() {
+    if (popup.armed || popup.done || !popupAllowed(S().popup)) return;
+    popup.armed = true;
+    const p = S().popup, touch = !matchMedia('(pointer:fine)').matches;
+    let trig = p.trigger || 'delay'; if (trig === 'exit' && touch) trig = 'delay';
+    const undo = []; let timer = 0;
+    const stop = () => { undo.forEach((f) => f()); undo.length = 0; clearTimeout(timer); };
+    const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); undo.push(() => t.removeEventListener(ev, fn, o)); };
+    const fire = () => {
+      if (popup.done) return;
+      if (overlayOpen()) { timer = setTimeout(fire, 2000); return; } // jangan menimpa modal/keranjang yang sedang terbuka
+      stop();
+      if (!popupAllowed(S().popup)) { popup.armed = false; return; }
+      popup.done = true; showPopup();
+    };
+    if (trig === 'scroll') {
+      on(window, 'scroll', () => { const h = document.documentElement.scrollHeight - innerHeight; if (h > 0 && scrollY / h * 100 >= (Number(p.scrollPct) || 40)) fire(); }, { passive: true });
+      timer = setTimeout(fire, 25000); // cadangan untuk halaman yang pendek
+    } else if (trig === 'exit') {
+      on(document, 'mouseout', (e) => { if (!e.relatedTarget && e.clientY <= 0) fire(); });
+    } else timer = setTimeout(fire, Math.max(0, Number(p.delay) || 0) * 1000);
+  }
+  function showPopup(force) {
     const p = S().popup || {};
-    if (popupShown || !p.enabled || (!p.title && !p.text)) return;
-    const key = 'trsh_popup';
-    if (!PREVIEW) {
-      if (p.frequency === 'once' && ls(key, '')) return;
-      if (p.frequency !== 'always' && p.frequency !== 'once' && ss(key)) return;
-    }
-    popupShown = true;
-    setTimeout(() => {
-      const q = S().popup || {};
-      if (!q.enabled || S().store.maintenance && !PREVIEW) return;
-      renderPopup();
-      $('#popup').classList.add('open'); $('#popup').setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('on'); lock();
-      if (!PREVIEW) { ssSet(key, '1'); lsSet(key, '1'); }
-    }, Math.max(0, Number(p.delay) || 0) * 1000);
+    if (!force && !popupAllowed(p)) return;
+    st.lastFocus = document.activeElement;
+    renderPopup(true);
+    if ((p.position || 'center') === 'center') $('#scrim').classList.add('on');
+    lock();
+    if (!PREVIEW && !force) { const k = popupKey(p); ssSet(k, '1'); lsSet(k, '1'); }
+    const x = $('#popup .x'); if (x && popupModal()) setTimeout(() => x.focus({ preventScroll: true }), 80);
   }
-  function renderPopup() {
-    const p = S().popup || {}, link = T.safeUrl(p.link);
-    setHTML($('#popup'), `<div class="pp" role="dialog" aria-modal="true"><button class="x" data-act="close" aria-label="Close">✕</button>
-      <p class="mono kicker">[ ✦ ]</p><h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>
-      ${p.code ? `<button class="code mono" data-act="usecode" data-code="${esc(p.code)}">${esc(p.code)} <span>PAKAI KODE</span></button>` : ''}
-      ${p.cta ? `<a class="btn solid full" href="${esc(link || '#shop')}" data-act="close">${esc(p.cta)} <span>→</span></a>` : ''}</div>`);
+  function closePopup() {
+    const el = $('#popup'); el.classList.remove('open'); el.setAttribute('aria-hidden', 'true');
+    if (!st.open && !$('#drawer').classList.contains('open')) $('#scrim').classList.remove('on');
+    lock();
   }
+  function renderPopup(open) {
+    const el = $('#popup'), p = S().popup || {}, link = T.safeUrl(p.link), img = T.safeImg(p.image);
+    const isOpen = open || el.classList.contains('open');
+    el.className = 'popup pos-' + (['corner', 'bar'].indexOf(p.position) >= 0 ? p.position : 'center') + (isOpen ? ' open' : '');
+    el.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    setHTML(el, `<div class="pp" role="dialog" aria-label="${esc(p.title)}"><button class="x" data-act="close" aria-label="Close">✕</button>
+      ${img ? `<div class="pp-img" style="background-image:url('${esc(img).replace(/'/g, '%27')}')"></div>` : ''}
+      <div class="pp-b"><p class="mono kicker">[ ✦ ]</p><h3>${esc(p.title)}</h3><p>${esc(p.text)}</p>
+      ${p.code ? `<button class="code mono" data-act="usecode" data-code="${esc(p.code)}">${esc(p.code)} <span>${esc(L('usecode'))}</span></button>` : ''}
+      <div class="pp-act">${p.cta ? `<a class="btn solid" href="${esc(link || '#shop')}" data-act="close">${esc(p.cta)} <span>→</span></a>` : ''}${p.closeText ? `<button class="lnk mono" data-act="close">${esc(p.closeText)}</button>` : ''}</div></div></div>`);
+  }
+  window.TRSH_UI = { showPopup: () => showPopup(true), closePopup };
 
   /* ---------------- events ---------------- */
   document.addEventListener('click', (e) => {
@@ -591,7 +680,7 @@
       const a = el.dataset.act;
       if (a === 'cart') openCart();
       else if (a === 'wishlist') { st.saved = true; renderShop(); location.hash = '#shop'; document.getElementById('shop').scrollIntoView({ behavior: 'smooth' }); }
-      else if (a === 'close') closeAll();
+      else if (a === 'close') { if (el.closest('#popup')) closePopup(); else closeAll(); }
       else if (a === 'add') { if (addCart(st.open, st.size, st.qty)) { closeAll(); setTimeout(openCart, 250); } }
       else if (a === 'checkout') checkout();
       else if (a === 'more') { st.page++; renderShop(); }
@@ -603,11 +692,12 @@
       else if (a === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (t.id === 'scrim' || t.id === 'modal' || t.id === 'popup') closeAll();
+    if (t.id === 'popup') closePopup();
+    else if (t.id === 'scrim' || t.id === 'modal') { closeAll(); closePopup(); }
     if (!t.closest('#links, #menuBtn')) $('#links').classList.remove('open');
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeAll(); $('#links').classList.remove('open'); return; }
+    if (e.key === 'Escape') { closeAll(); closePopup(); $('#links').classList.remove('open'); return; }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('card')) { e.preventDefault(); openProduct(e.target.dataset.id); return; }
     if (e.key === 'Enter' && e.target.id === 'vIn') { e.preventDefault(); applyVoucher(); }
   });
@@ -649,13 +739,14 @@
     $('#progress').style.transform = 'scaleX(' + (h > 0 ? Math.min(1, y / h) : 0) + ')';
     $('#toTop').hidden = !(S().effects.backTop && y > 700);
     $('#nav').classList.toggle('scrolled', y > 8);
+    if (S().effects.parallax) document.documentElement.style.setProperty('--py', Math.min(y, 900) * 0.18 + 'px');
   }
   addEventListener('scroll', () => { if (!sraf) sraf = requestAnimationFrame(onScroll); }, { passive: true });
 
   /* ---------------- preloader ---------------- */
   function preload() {
     const pl = $('#preloader');
-    if (!S().effects.preloader || PREVIEW) { pl.remove(); document.body.classList.remove('loading'); maybePopup(); return; }
+    if (!S().effects.preloader || PREVIEW) { pl.remove(); document.body.classList.remove('loading'); schedulePopup(); return; }
     let n = 0; const num = $('#plNum'), bar = $('#plBar');
     const iv = setInterval(() => {
       n = Math.min(100, n + Math.ceil(Math.random() * 13));
@@ -664,7 +755,7 @@
         clearInterval(iv);
         // tunggu data dari Supabase (maks 3,5 dtk) agar tidak sempat tampil data default
         Promise.race([T.ready, new Promise((r) => setTimeout(r, 3500))]).then(() => {
-          setTimeout(() => { pl.classList.add('done'); document.body.classList.remove('loading'); setTimeout(() => pl.remove(), 900); maybePopup(); }, 260);
+          setTimeout(() => { pl.classList.add('done'); document.body.classList.remove('loading'); setTimeout(() => pl.remove(), 900); schedulePopup(); }, 260);
         });
       }
     }, 70);
@@ -676,7 +767,7 @@
     renderShop(); renderExtra(); renderAbout(); renderNews(); renderFooter();
     renderCart(); if (st.open) renderModal();
     reveal(); onScroll(); initTracking();
-    if ($('#popup').classList.contains('open')) renderPopup(); else if (PREVIEW) maybePopup(); // preview: popup langsung terlihat saat admin mengaktifkannya
+    if ($('#popup').classList.contains('open')) renderPopup(); else if (PREVIEW) schedulePopup(); // preview: popup langsung terlihat saat admin mengaktifkannya
     sig = pricingSig();
   }
   let raf = 0;

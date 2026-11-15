@@ -52,6 +52,21 @@ python3 -m http.server 8080
 
 Tombol **LIVE PREVIEW** membuka toko di panel samping (mode desktop/mobile) yang ikut berubah saat Anda mengetik.
 
+## Update v3 — perbaikan bug, popup, glass & animasi
+
+**Bug yang diperbaiki**
+- **Pengaturan tanggal** (countdown drop, jadwal diskon/promo, kedaluwarsa voucher): sekarang memakai kolom tanggal yang benar (tampil di zona waktumu, disimpan sebagai UTC sehingga countdown sama di semua negara), dengan tombol cepat *SEKARANG / +1 JAM / +1 HARI / +7 HARI / KOSONGKAN*. Sebelumnya nilai bawaan tidak terbaca kolom tanggal dan waktu bisa berbeda per pengunjung.
+- **Tombol hapus/reset "tidak bekerja"**: dialog `confirm()` bawaan browser bisa diblokir (mis. "cegah halaman membuat dialog tambahan"). Diganti dialog konfirmasi bawaan aplikasi.
+- **Teks/elemen yang tidak bisa diubah**: logo (upload gambar), gambar latar hero, baris meta hero (N°001 / SCROLL / tahun), kicker seksi, tulisan raksasa footer, link BACK TO TOP, label countdown — semuanya kini bisa diedit/dimatikan.
+- Gambar yang diupload di mode lokal (logo, hero, popup) tidak tampil karena ditolak filter URL — diperbaiki; logo PNG/SVG transparan kini tetap transparan.
+- **UI terpotong**: panel edit produk di admin (kolom melebar keluar layar), tombol yang menimpa nama produk di HP, tulisan raksasa footer ("RUDE TRAS"), judul hero yang panjang, pita gelap di tepi layar akibat efek grain, nama produk yang terlalu sempit di kartu HP, dan toast yang menutup tombol checkout di HP.
+
+**Popup baru**: pemicu *jeda waktu / setelah scroll / kursor keluar halaman*, posisi *tengah / pojok / bar bawah*, gambar, teks tutup, opsi tampil di HP, dan tidak menimpa modal/keranjang yang sedang terbuka. "Sudah dilihat" mengikuti isi popup — popup yang diedit akan tampil lagi ke pengunjung lama. Tombol **▶ TES POPUP DI PREVIEW** ada di tab Diskon & Promo.
+
+**Glass & animasi** (tab Tampilan): Glass UI (blur, kepekatan, garis tepi, saturasi; bisa per bagian: navbar, kartu, panel, tombol), latar **Aurora** bergerak, gaya reveal (naik / fade / zoom / geser / blur), hover kartu (terangkat / zoom / glow), animasi intro judul hero, parallax, foto fade-in + shimmer, tombol BAG membal, marquee berhenti saat di-hover. Admin juga bergaya kaca. Animasi otomatis dikurangi untuk pengunjung dengan setelan "kurangi gerakan".
+
+**Konfigurasi baru**: tinggi & rata teks hero, gambar latar hero + kegelapan, logo gambar/teks, edit semua label (countdown, scroll, back to top, dst.), kicker drop & newsletter.
+
 ## Update v2 — fitur baru
 
 **Diskon & harga coret**

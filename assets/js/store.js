@@ -74,8 +74,7 @@
   }
 
   /* ---------- Default data ---------- */
-  const inDays = (n) =>
-    new Date(Date.now() + n * 864e5 - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 16);
+  const inDays = (n) => new Date(Date.now() + n * 864e5).toISOString();
 
   const P = (id, name, price, category, stock, sizes, badge, desc, featured) => ({
     id, name, price, category, stock, sizes, badge: badge || '', desc,
@@ -92,22 +91,26 @@
     checkout: 'CHECKOUT VIA WHATSAPP', loadMore: 'LOAD MORE', noResult: '— NO RESULT. TRY ANOTHER SEARCH —',
     voucher: 'KODE VOUCHER', apply: 'PAKAI', subscribe: 'SUBSCRIBE →', emailPh: 'EMAIL@KAMU.COM',
     added: 'DITAMBAHKAN KE BAG ✦', preorderClosed: 'TOKO SEDANG TUTUP', menu: 'MENU',
+    scroll: 'SCROLL ↓', backTop: 'BACK TO TOP ↑', days: 'DAYS', hrs: 'HRS', min: 'MIN', sec: 'SEC', usecode: 'PAKAI KODE',
   };
   const CL = ['S', 'M', 'L', 'XL'];
 
   const DEFAULTS = {
     settings: {
-      brand: { name: 'TRSH', fullName: 'RUDE TRASH', tagline: 'WEAR THE NOISE. KEEP IT RUDE.' },
+      brand: { name: 'TRSH', fullName: 'RUDE TRASH', tagline: 'WEAR THE NOISE. KEEP IT RUDE.', logoImage: '', logoMode: 'text', logoHeight: 28 },
       theme: {
         bg: '#09090b', fg: '#ececf0', muted: '#8b8b95', card: '#101013', accent: '#c8ff2e', line: '#26262c',
         displayFont: 'Unbounded', bodyFont: 'Space Grotesk', monoFont: 'JetBrains Mono',
         radius: 2, gridCols: 4, ratio: '4/5', animSpeed: 1,
         maxWidth: 0, fontScale: 1, btnShape: 'sharp', cardStyle: 'default', imgFit: 'cover', navSticky: true,
+        cardHover: 'lift', revealStyle: 'up',
+        glass: { on: false, blur: 18, opacity: 0.5, border: 0.16, saturate: 1.4, nav: true, cards: true, panels: true, ui: true },
       },
       effects: {
         preloader: true, grain: true, cursor: true, scanlines: false,
         reveal: true, glitch: true, tilt: true, sparkles: true,
         progress: true, hoverSwap: true, smooth: true, backTop: true,
+        aurora: false, parallax: true, heroIntro: true, imgFade: true, bump: true, marqueePause: true,
       },
       hero: {
         eyebrow: '[ DROP 001 — UNDERGROUND SERIES ]',
@@ -115,6 +118,8 @@
         sub: 'Streetwear dari bawah tanah. Potongan boxy, cuci kasar, detail kromium. Diproduksi terbatas — tanpa restock.',
         cta: 'SHOP THE DROP', ctaLink: '#shop',
         showSticker: true, sticker: 'LIMITED EDITION',
+        bgImage: '', bgOverlay: 0.55, showArt: true, showMeta: true, metaLeft: 'N°001', metaCenter: 'SCROLL ↓', metaRight: '',
+        align: 'left', size: 'full',
       },
       marquee: { text: 'FREE ONGKIR > 500K ✦ LIMITED PIECES ✦ NO RESTOCK ✦ RUDE BY DESIGN', speed: 28 },
       announcement: { enabled: true, text: 'DROP 001 LIVE — STOK TERBATAS', link: '', style: 'accent', dismissible: false },
@@ -128,8 +133,9 @@
       popup: {
         enabled: false, title: 'WELCOME TO THE NOISE', text: 'Pakai kode TRSH10 untuk diskon 10% di order pertama.',
         cta: 'SHOP NOW', link: '#shop', delay: 4, frequency: 'session', code: 'TRSH10',
+        trigger: 'delay', scrollPct: 40, position: 'center', image: '', mobile: true, closeText: 'NANTI SAJA',
       },
-      drop: { title: 'NEXT DROP IN', note: 'Drop 002 — “NO SIGNAL” capsule. Set reminder.', date: inDays(14) },
+      drop: { title: 'NEXT DROP IN', kicker: '', note: 'Drop 002 — “NO SIGNAL” capsule. Set reminder.', date: inDays(14) },
       shop: { kicker: '[ 02 — CATALOG ]', title: 'THE CATALOG' },
       about: {
         kicker: '[ 03 — MANIFESTO ]', title: 'BORN IN THE\nBACKROOM.',
@@ -138,6 +144,7 @@
       footer: {
         newsletterTitle: 'JOIN THE NOISE', newsletterText: 'Masukkan email untuk akses awal setiap drop.',
         text: '© 2026 RUDE TRASH. ALL RIGHTS RESERVED.',
+        newsletterKicker: '[ 04 — NEWSLETTER ]', showWordmark: true, wordmark: '', showBackTop: true,
       },
       social: { instagram: 'https://instagram.com/', tiktok: 'https://tiktok.com/', email: 'hello@trsh.store' },
       socialOn: { instagram: true, tiktok: true, email: true },
@@ -551,6 +558,13 @@ ${bars}
     else if (n.startsWith('8')) n = '62' + n;
     return n;
   }
+  // alamat gambar: http(s), path relatif, atau data:image base64 (upload mode lokal)
+  function safeImg(u) {
+    u = String(u || '').trim();
+    if (/^data:image\/(png|jpe?g|webp|gif|avif);base64,[a-z0-9+/=]+$/i.test(u)) return u;
+    const x = safeUrl(u);
+    return /^(mailto:|tel:|#)/i.test(x) ? '' : x;
+  }
   function socialHref(k, v) {
     v = String(v || '').trim();
     if (!v) return '';
@@ -585,7 +599,7 @@ ${bars}
   /* ---------- Public API ---------- */
   const T = {
     FONTS, fontUrl, fontStack, contrast, placeholder, getPath,
-    pricing, promoState, waNumber, SOCIALS, safeUrl, socialHref, socialLinks, L, LABELS, sectionOrder, SECTION_IDS,
+    pricing, promoState, waNumber, SOCIALS, safeUrl, safeImg, socialHref, socialLinks, L, LABELS, sectionOrder, SECTION_IDS,
     remote: REMOTE, auth, status: 'idle',
     get: () => db,
     update(fn) { fn(db); persist(); notify('local'); },
@@ -617,8 +631,10 @@ ${bars}
     /* Upload foto ke Supabase Storage → URL publik (hanya admin) */
     async uploadImage(blob) {
       if (!REMOTE || !isAdmin) throw new Error('Bukan admin');
-      const path = new Date().toISOString().slice(0, 7) + '/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.jpg';
-      const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+      const type = /^image\/(png|webp|gif)$/.test(blob.type) ? blob.type : 'image/jpeg';
+      const ext = type === 'image/jpeg' ? 'jpg' : type.split('/')[1];
+      const path = new Date().toISOString().slice(0, 7) + '/' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: type, cacheControl: '31536000', upsert: false });
       if (error) throw error;
       return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
     },

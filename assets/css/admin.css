@@ -153,3 +153,46 @@ s.dim,.dim s{color:var(--dim)}
 .inp{padding:10px 12px}
 .sw.on{border-color:var(--acc);color:var(--acc)}
 @media (max-width:900px){.vrow2,.soc,.soc.ex{grid-template-columns:1fr}}
+
+/* ==========================================================
+   v3 — perbaikan UI terpotong, tanggal, gambar, dialog, glass
+   ========================================================== */
+/* kolom grid tidak lagi melebar keluar panel */
+.row2,.row3{grid-template-columns:repeat(2,minmax(0,1fr))}.row3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row2>*,.row3>*,.grid2>*,.f,.box{min-width:0}
+.f input[type=text],.f input[type=number],.f input[type=datetime-local],.f select,.f textarea{min-width:0;max-width:100%}
+.panel .pbody,.panel-b{overflow-x:hidden}
+.f h3,.box h3{gap:12px;flex-wrap:wrap;align-items:center}
+.side-f .live{display:flex;align-items:flex-start;gap:6px;line-height:1.35;font-size:10px;letter-spacing:.1em}
+.side-f .live .dot{flex:none;margin:4px 0 0}
+.stats{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+/* tanggal */
+.dq{display:flex;gap:6px;flex-wrap:wrap}
+.f input[type=datetime-local]{color-scheme:dark}
+/* upload gambar */
+.imgf{display:grid;grid-template-columns:72px minmax(0,1fr);gap:12px;align-items:center}
+.imgf>img,.imgf>i{width:72px;height:72px;object-fit:cover;border:1px dashed var(--line);display:grid;place-items:center;background:var(--bg);font-size:10px}
+.imgf>img{border-style:solid}
+.imgf-c{display:grid;gap:8px;min-width:0}
+/* dialog konfirmasi */
+.dlg{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);animation:dlgin .2s ease-out}
+.dlg-b{width:min(420px,100%);background:var(--card);border:1px solid var(--line);padding:26px;display:grid;gap:22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.dlg-b p{font-size:15px;line-height:1.55}
+.dlg-a{display:flex;gap:10px;justify-content:flex-end}
+@keyframes dlgin{from{opacity:0}to{opacity:1}}
+/* glass pada admin: sidebar, topbar, panel */
+.side{background:color-mix(in srgb,var(--bg2) 78%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.top{background:color-mix(in srgb,var(--bg) 70%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.panel{background:color-mix(in srgb,var(--bg2) 86%,transparent);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px)}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(40vmax 40vmax at 8% -6%,color-mix(in srgb,var(--acc) 12%,transparent),transparent 70%),radial-gradient(36vmax 36vmax at 100% 100%,rgba(122,92,255,.10),transparent 70%)}
+.main,.app{background:transparent}
+/* animasi kecil */
+.box{animation:boxin .4s var(--ease) both}
+@keyframes boxin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.box,.dlg{animation:none}}
+@media (max-width:900px){
+  .tr{grid-template-columns:46px minmax(0,1fr)}
+  .tr .acts{grid-column:1/-1;justify-content:flex-start;padding-left:60px}
+  .imgf{grid-template-columns:56px minmax(0,1fr)}.imgf>img,.imgf>i{width:56px;height:56px}
+  .row3{grid-template-columns:minmax(0,1fr)}
+}
