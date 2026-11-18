@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="gfont" rel="stylesheet" href="data:text/css,">
 <link rel="stylesheet" href="assets/css/style.css">
+<style id="custom-fonts"></style>
 <style id="custom-css"></style>
 </head>
 <body class="loading">
@@ -48,6 +49,7 @@
   <a href="#top" class="logo" id="logo"></a>
   <nav class="links mono" id="links"></nav>
   <div class="acts mono">
+    <button class="ab" data-act="theme" id="themeBtn" aria-label="Tema" hidden>☀</button>
     <button class="ab menu" data-act="menu" id="menuBtn" aria-label="Menu" aria-expanded="false" hidden>☰</button>
     <button class="ab" data-act="wishlist" id="wishBtn" aria-label="Saved">♡ <b id="wishN">0</b></button>
     <button class="ab" data-act="cart" id="cartBtn" aria-label="Bag">BAG <b id="cartN">0</b></button>
@@ -81,6 +83,7 @@
     <div class="grid" id="grid"></div>
     <p class="empty mono" id="empty" hidden>— NO RESULT. TRY ANOTHER SEARCH —</p>
     <div class="more" id="more"></div>
+    <div class="recent" id="recent"></div>
   </section>
 
   <section id="extra" class="sec extra" hidden></section>
@@ -97,6 +100,8 @@
 
 <!-- Promo popup -->
 <div id="popup" class="popup" aria-hidden="true"></div>
+<div id="sheet" class="sheet" aria-hidden="true"></div>
+<div id="lb" class="lb" aria-hidden="true"></div>
 
 <!-- Maintenance -->
 <div id="maint" class="maint" hidden></div>

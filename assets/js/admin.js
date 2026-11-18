@@ -14,8 +14,8 @@
 
   const TABS = [
     ['dashboard', 'Dashboard', '◐'], ['products', 'Produk', '▣'], ['categories', 'Kategori', '≡'],
-    ['promo', 'Diskon & Promo', '%'], ['appearance', 'Tampilan', '◆'], ['content', 'Konten', '✎'],
-    ['social', 'Sosial Media', '@'], ['features', 'Fitur & Toko', '⚙'], ['advanced', 'Lanjutan', '⌥'],
+    ['promo', 'Diskon & Promo', '%'], ['checkout', 'Checkout', '✉'], ['appearance', 'Tampilan', '◆'], ['content', 'Konten', '✎'],
+    ['social', 'Sosial Media', '@'], ['features', 'Fitur & Toko', '⚙'], ['maintenance', 'Maintenance', '⚒'], ['advanced', 'Lanjutan', '⌥'],
     ['orders', 'Pesanan', '✦'], ['system', 'Sistem', '⌘'],
   ];
   let tab = sessionStorage.getItem('trsh_tab') || 'dashboard';
@@ -80,7 +80,7 @@
       setTimeout(() => { const c = m.querySelector('[data-r="0"]'); if (c) c.focus(); }, 30);
     });
   }
-  const fontOpts = () => T.FONTS.map((f) => [f.n, f.n]);
+  const fontOpts = () => T.customFontNames().map((n) => [n, '★ ' + n + ' (kustom)']).concat(T.FONTS.map((f) => [f.n, f.n]));
 
   /* ---------------- binding ---------------- */
   document.addEventListener('input', (e) => {
@@ -173,6 +173,7 @@
           <p class="hint dim" style="font-size:12px">Kosongkan jadwal agar diskon langsung & terus berlaku. Bila ada promo global aktif, harga termurah yang dipakai. Potongan yang tidak valid (≥ harga normal) diabaikan.</p></div>
         <div class="row2">${fSelect('Kategori', b + 'category', catOpts)}${fText('Badge (NEW / LIMITED …)', b + 'badge', { ph: 'opsional' })}</div>
         ${fText('SKU / kode produk (opsional)', b + 'sku', { ph: 'TRSH-001' })}
+        <div class="box" style="padding:14px;gap:12px"><h3>Pre-order</h3>${fTog('Izinkan pre-order saat stok habis', b + 'preorder.on', 'Produk tetap bisa dipesan dengan badge PRE-ORDER')}<div class="row2">${fText('Estimasi tersedia', b + 'preorder.eta', { ph: 'cth: 20 Des 2026' })}${fNum('Kuota pre-order', b + 'preorder.limit', { min: 1 })}</div></div>
         <label class="f"><span>Ukuran (pisahkan dengan koma)</span><input type="text" data-type="list" data-path="${b}sizes" value="${esc((p.sizes || []).join(', '))}" placeholder="S, M, L, XL"></label>
         ${fArea('Deskripsi', b + 'desc', { rows: 4 })}
         <div class="row2">${fTog('Tampilkan di toko', b + 'active')}${fTog('Featured (urut paling atas)', b + 'featured')}</div>
@@ -198,7 +199,7 @@
     el.innerHTML = msg;
   }
   function openEditor(i) {
-    const pp = db().products[i]; if (pp) pp.sale = Object.assign({}, SALE0, pp.sale || {});
+    const pp = db().products[i]; if (pp) { pp.sale = Object.assign({}, SALE0, pp.sale || {}); pp.preorder = Object.assign({ on: false, eta: '', limit: 5 }, pp.preorder || {}); }
     editing = i; $('#panel').innerHTML = editorHTML(i); refreshSalePrev();
     $('#panel').classList.add('open'); $('#scrim').classList.add('on');
   }
@@ -217,7 +218,9 @@
         <label class="tg" style="padding:7px 10px"><span class="mono">TAMPIL</span><input type="checkbox" data-type="bool" data-path="categories.${i}.visible" ${c.visible ? 'checked' : ''}><i></i></label>
         <span class="mono dim">${db().products.filter((p) => p.category === c.id).length} PRODUK</span>
         <div class="acts" style="display:flex;gap:6px"><button class="btn sm" data-a="c-up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn sm" data-a="c-dn" data-i="${i}" ${i === cats.length - 1 ? 'disabled' : ''}>↓</button><button class="btn sm danger" data-a="c-del" data-i="${i}">✕</button></div></div>`).join('') : '<div class="empty">Belum ada kategori.</div>'}</div>
-      <div class="bar" style="margin:0"><input class="inp" id="newCat" placeholder="Nama kategori baru…"><button class="btn acc" data-a="c-add">+ TAMBAH KATEGORI</button></div></div></div>`;
+      <div class="bar" style="margin:0"><input class="inp" id="newCat" placeholder="Nama kategori baru…"><button class="btn acc" data-a="c-add">+ TAMBAH KATEGORI</button></div></div>
+      <div class="box wide"><h3>Size Guide per Kategori</h3><p class="hint">Tabel ukuran yang muncul lewat tombol “SIZE GUIDE” di halaman produk. Satu baris = satu baris tabel, kolom dipisah tanda <code>|</code>; baris pertama menjadi judul kolom. Kosongkan untuk menyembunyikan tombol.</p>
+        ${cats.map((c, i) => fArea(c.name, `categories.${i}.sizeGuide`, { rows: 4, ph: 'UKURAN | LEBAR | PANJANG\nS | 52 | 68' })).join('')}</div></div>`;
   }
 
   const PRESETS = {
@@ -233,11 +236,14 @@
       <div class="box wide"><h3>Preset Tema</h3><div class="pre">${Object.keys(PRESETS).map((k) => `<button class="sw" data-a="preset" data-k="${esc(k)}"><u><s style="background:${PRESETS[k].bg};border:1px solid #444"></s><s style="background:${PRESETS[k].accent}"></s></u>${esc(k)}</button>`).join('')}</div></div>
       <div class="box"><h3>Warna</h3><div class="row3">${fColor('Background', 'settings.theme.bg')}${fColor('Teks', 'settings.theme.fg')}${fColor('Aksen', 'settings.theme.accent')}</div><div class="row3">${fColor('Teks redup', 'settings.theme.muted')}${fColor('Kartu', 'settings.theme.card')}${fColor('Garis', 'settings.theme.line')}</div></div>
       <div class="box"><h3>Font</h3>${fSelect('Display (judul)', 'settings.theme.displayFont', fontOpts())}${fSelect('Body', 'settings.theme.bodyFont', fontOpts())}${fSelect('Mono (label)', 'settings.theme.monoFont', fontOpts())}<p class="hint">Font dimuat dari Google Fonts (butuh internet di sisi pengunjung).</p></div>
+      ${fontBox()}
       <div class="box"><h3>Layout Katalog</h3>${fSelect('Kolom grid (desktop)', 'settings.theme.gridCols', [[2, '2 kolom'], [3, '3 kolom'], [4, '4 kolom'], [5, '5 kolom']], true)}${fSelect('Rasio foto produk', 'settings.theme.ratio', [['4/5', '4:5 Portrait'], ['3/4', '3:4 Portrait'], ['1/1', '1:1 Square'], ['2/3', '2:3 Tall'], ['4/3', '4:3 Landscape']])}${fRange('Radius sudut (px)', 'settings.theme.radius', 0, 24, 1)}${fRange('Kecepatan animasi', 'settings.theme.animSpeed', 0.3, 2.5, 0.1)}</div>
       <div class="box"><h3>Gaya & Layout</h3>${fSelect('Bentuk tombol & chip', 'settings.theme.btnShape', [['sharp', 'Kotak (tajam)'], ['pill', 'Pil (bulat)']])}${fSelect('Gaya kartu produk', 'settings.theme.cardStyle', [['default', 'Default (foto + teks)'], ['bordered', 'Berbingkai'], ['flat', 'Flat tanpa garis']])}${fSelect('Penyesuaian foto', 'settings.theme.imgFit', [['cover', 'Isi penuh (crop)'], ['contain', 'Tampil utuh (tanpa crop)']])}${fNum('Lebar maksimum konten (px, 0 = penuh)', 'settings.theme.maxWidth', { min: 0, ph: '0' })}${fRange('Skala ukuran teks', 'settings.theme.fontScale', 0.85, 1.3, 0.05)}${fTog('Navbar menempel saat scroll', 'settings.theme.navSticky')}</div>
       <div class="box"><h3>Efek Kaca (Glass)</h3>${fTog('Aktifkan Glass UI', 'settings.theme.glass.on', 'Navbar, kartu, panel & tombol menjadi kaca transparan')}${fRange('Blur (px)', 'settings.theme.glass.blur', 0, 40, 1)}${fRange('Kepekatan kaca', 'settings.theme.glass.opacity', 0.1, 0.9, 0.05)}${fRange('Garis tepi kaca', 'settings.theme.glass.border', 0, 0.5, 0.02)}${fRange('Saturasi warna', 'settings.theme.glass.saturate', 1, 2.2, 0.1)}<div class="row2">${fTog('Navbar', 'settings.theme.glass.nav')}${fTog('Kartu produk', 'settings.theme.glass.cards')}</div><div class="row2">${fTog('Modal, keranjang, popup', 'settings.theme.glass.panels')}${fTog('Tombol, chip, input', 'settings.theme.glass.ui')}</div><p class="hint">Kaca paling terlihat di atas latar bergerak — nyalakan efek <b>Aurora</b> pada kotak Efek Visual.</p></div>
+      <div class="box"><h3>Gaya UI Lanjutan</h3>${fSelect('Kepadatan jarak seksi', 'settings.theme.density', [['compact', 'Rapat'], ['normal', 'Normal'], ['airy', 'Lega']])}${fRange('Intensitas bayangan', 'settings.theme.shadow', 0, 1, 0.05)}${fSelect('Gaya tombol', 'settings.theme.btnStyle', [['outline', 'Garis (hover isi)'], ['solid', 'Solid'], ['gradient', 'Gradien aksen']])}${fColor('Warna aksen kedua (gradien & aurora)', 'settings.theme.accent2')}${fTog('Efek logam “chrome” pada judul', 'settings.theme.chromeText')}${fSelect('Pola latar hero', 'settings.theme.bgPattern', [['grid', 'Grid'], ['dots', 'Titik'], ['none', 'Polos']])}${fSelect('Gaya kursor kustom', 'settings.theme.cursorStyle', [['ring', 'Cincin'], ['dot', 'Titik'], ['cross', 'Crosshair']])}${fSelect('Gaya loading awal', 'settings.theme.loaderStyle', [['counter', 'Angka 000–100'], ['minimal', 'Logo berdenyut'], ['curtain', 'Tirai terbuka']])}</div>
+      <div class="box"><h3>Tema Terang (tombol ☀/☾ pengunjung)</h3>${fTog('Beri pengunjung tombol ganti tema', 'settings.store.themeToggle', 'Tombol di navbar; pilihan diingat per pengunjung')}${fColor('Background (terang)', 'settings.theme.alt.bg')}${fColor('Teks (terang)', 'settings.theme.alt.fg')}${fColor('Teks redup (terang)', 'settings.theme.alt.muted')}${fColor('Kartu (terang)', 'settings.theme.alt.card')}${fColor('Garis (terang)', 'settings.theme.alt.line')}${fColor('Aksen (terang) — kosong = otomatis digelapkan', 'settings.theme.alt.accent')}<button class="btn sm" data-a="alt-acc-clear">AKSEN TERANG: OTOMATIS</button></div>
       <div class="box"><h3>Animasi</h3>${fSelect('Gaya muncul saat di-scroll', 'settings.theme.revealStyle', [['up', 'Naik + fade'], ['fade', 'Fade'], ['zoom', 'Zoom'], ['slide', 'Geser'], ['blur', 'Blur ke tajam']])}${fSelect('Efek hover kartu produk', 'settings.theme.cardHover', [['lift', 'Terangkat'], ['zoom', 'Zoom foto'], ['glow', 'Glow aksen'], ['none', 'Tanpa efek']])}<p class="hint">Kecepatan semua animasi diatur di kotak “Layout Katalog” (Kecepatan animasi). Pengunjung dengan pengaturan “kurangi gerakan” otomatis tidak melihat animasi.</p></div>
-      <div class="box"><h3>Efek Visual</h3>${fTog('Preloader', 'settings.effects.preloader', 'Animasi loading saat membuka toko')}${fTog('Film grain', 'settings.effects.grain', 'Tekstur noise halus')}${fTog('Scanlines', 'settings.effects.scanlines', 'Garis CRT ala Y2K')}${fTog('Custom cursor', 'settings.effects.cursor', 'Hanya perangkat mouse')}${fTog('Reveal saat scroll', 'settings.effects.reveal')}${fTog('Glitch judul (hover)', 'settings.effects.glitch')}${fTog('Tilt 3D kartu produk', 'settings.effects.tilt')}${fTog('Sparkle & ring hero', 'settings.effects.sparkles')}${fTog('Foto kedua saat hover kartu', 'settings.effects.hoverSwap')}${fTog('Progress bar scroll', 'settings.effects.progress')}${fTog('Smooth scroll', 'settings.effects.smooth')}${fTog('Tombol kembali ke atas', 'settings.effects.backTop')}${fTog('Aurora (latar gradien bergerak)', 'settings.effects.aurora')}${fTog('Parallax hero saat scroll', 'settings.effects.parallax')}${fTog('Animasi intro judul hero', 'settings.effects.heroIntro')}${fTog('Foto produk fade-in + shimmer', 'settings.effects.imgFade')}${fTog('Tombol BAG “membal” saat tambah item', 'settings.effects.bump')}${fTog('Marquee berhenti saat di-hover', 'settings.effects.marqueePause')}</div></div>`;
+      <div class="box"><h3>Efek Visual</h3>${fTog('Preloader', 'settings.effects.preloader', 'Animasi loading saat membuka toko')}${fTog('Film grain', 'settings.effects.grain', 'Tekstur noise halus')}${fTog('Scanlines', 'settings.effects.scanlines', 'Garis CRT ala Y2K')}${fTog('Custom cursor', 'settings.effects.cursor', 'Hanya perangkat mouse')}${fTog('Reveal saat scroll', 'settings.effects.reveal')}${fTog('Glitch judul (hover)', 'settings.effects.glitch')}${fTog('Tilt 3D kartu produk', 'settings.effects.tilt')}${fTog('Sparkle & ring hero', 'settings.effects.sparkles')}${fTog('Foto kedua saat hover kartu', 'settings.effects.hoverSwap')}${fTog('Progress bar scroll', 'settings.effects.progress')}${fTog('Smooth scroll', 'settings.effects.smooth')}${fTog('Tombol kembali ke atas', 'settings.effects.backTop')}${fTog('Aurora (latar gradien bergerak)', 'settings.effects.aurora')}${fTog('Parallax hero saat scroll', 'settings.effects.parallax')}${fTog('Animasi intro judul hero', 'settings.effects.heroIntro')}${fTog('Foto produk fade-in + shimmer', 'settings.effects.imgFade')}${fTog('Tombol BAG “membal” saat tambah item', 'settings.effects.bump')}${fTog('Marquee berhenti saat di-hover', 'settings.effects.marqueePause')}${fTog('Foto “terbang” ke keranjang', 'settings.effects.flyToCart')}${fTog('Ledakan ♥ saat wishlist', 'settings.effects.heartBurst')}${fTog('Tombol magnetik (ikut kursor)', 'settings.effects.magnetic')}${fTog('Judul hero “decode” saat dibuka', 'settings.effects.scramble')}${fTog('Judul seksi wipe saat muncul', 'settings.effects.splitReveal')}${fTog('Efek riak pada tombol', 'settings.effects.ripple')}${fTog('Marquee miring mengikuti scroll', 'settings.effects.marqueeSkew')}</div></div>`;
   }
 
   function vContent() {
@@ -263,7 +269,8 @@
       <div class="box"><h3>Katalog Lanjutan</h3>${fSelect('Urutan default', 'settings.store.defaultSort', [['new', 'Terbaru (featured dulu)'], ['low', 'Harga termurah'], ['high', 'Harga termahal'], ['az', 'A — Z']])}${fSelect('Produk habis (stok 0)', 'settings.store.soldOut', [['show', 'Tampilkan (abu-abu, SOLD OUT)'], ['last', 'Tampilkan di urutan paling akhir'], ['hide', 'Sembunyikan']])}${fNum('Produk per halaman (0 = semua, tombol LOAD MORE)', 'settings.store.perPage', { min: 0 })}${fNum('Maks. qty per produk per order (0 = bebas)', 'settings.store.maxPerItem', { min: 0 })}</div>
       <div class="box"><h3>Buka / Tutup Order</h3>${fTog('Terima pesanan (checkout aktif)', 'settings.store.ordering', 'Matikan untuk menutup checkout sementara — katalog tetap tampil')}${fText('Pesan saat order ditutup', 'settings.store.closedText')}</div>
       <div class="box"><h3>Ongkir & Minimum Order</h3>${fNum('Ongkir flat (0 = tidak ditampilkan)', 'settings.store.shipFee', { min: 0 })}${fNum('Gratis ongkir untuk belanja ≥ (0 = nonaktif)', 'settings.store.freeShipMin', { min: 0 })}${fNum('Minimum order (0 = bebas)', 'settings.store.minOrder', { min: 0 })}${fText('Catatan pengiriman (di keranjang)', 'settings.store.shipNote', { ph: 'cth: Dikirim 1–2 hari kerja' })}${fTog('Kolom kode voucher di keranjang', 'settings.store.voucherBox')}</div>
-      <div class="box"><h3>Checkout (WhatsApp)</h3>${fText('Nomor WhatsApp', 'settings.store.whatsapp', { ph: '081234567890 / 6281234567890' })}${fText('Simbol mata uang', 'settings.store.currency')}${fArea('Template pesan', 'settings.store.template', { rows: 8 })}<p class="hint">Placeholder: <code>{items}</code> <code>{summary}</code> <code>{subtotal}</code> <code>{discount}</code> <code>{shipping}</code> <code>{voucher}</code> <code>{total}</code> <code>{orderId}</code>. Nomor berawalan 0 atau 8 otomatis diubah ke format 62.</p></div>
+      <div class="box"><h3>Mata Uang & Checkout</h3>${fText('Simbol mata uang', 'settings.store.currency')}<p class="hint">Channel (WhatsApp, email, dll), data pembeli, template pesan & gambar struk diatur di tab <b>Checkout</b>.</p><button class="btn acc" data-a="go-checkout">BUKA TAB CHECKOUT →</button></div>
+      <div class="box"><h3>Fitur Tambahan Toko</h3>${fTog('Link langsung ke produk (#p-id)', 'settings.store.deepLinks', 'Pengunjung bisa membuka & membagikan link produk')}${fTog('Tombol share di produk', 'settings.store.share')}${fTog('Zoom foto (lightbox)', 'settings.store.lightbox')}${fTog('Produk terkait di modal', 'settings.store.related')}${fTog('Bagian “Terakhir dilihat”', 'settings.store.recent')}</div>
       <div class="box"><h3>Tombol WhatsApp Melayang</h3>${fTog('Tampilkan tombol chat WhatsApp', 'settings.store.waFloat')}${fText('Teks tombol', 'settings.store.waFloatText')}${fSelect('Posisi', 'settings.store.waFloatPos', [['right', 'Kanan bawah'], ['left', 'Kiri bawah']])}${fText('Pesan awal', 'settings.store.waFloatMsg')}</div>
       <div class="box"><h3>Fitur Kustom (flag) <button class="btn sm" data-a="f-add">+ TAMBAH</button></h3>
         <p class="hint">Tambah setting bebas. Tiap flag otomatis menjadi atribut <code>body[data-f-key="value"]</code> dan variabel CSS <code>--c-key</code> di toko — bisa dipakai di Custom CSS untuk menyalakan/mematikan gaya apa pun secara realtime.</p>
@@ -311,7 +318,7 @@
       const v = (S().social || {})[d.k] || '', href = T.socialHref(d.k, v);
       const st = !v ? '' : href ? '<span class="pill ok">URL OK</span>' : '<span class="pill no">TIDAK VALID</span>';
       return `<div class="soc"><label class="tg"><span><b>${esc(d.n)}</b></span><input type="checkbox" data-type="bool" data-path="settings.socialOn.${d.k}" ${on[d.k] ? 'checked' : ''}><i></i></label>
-        <input class="inp" data-path="settings.social.${d.k}" value="${esc(v)}" placeholder="${esc(d.ph)}" spellcheck="false">${st}</div>`;
+        <input class="inp" data-path="settings.social.${d.k}" value="${esc(v)}" placeholder="${esc(d.ph)}" spellcheck="false">${st || '<span></span>'}</div>`;
     }).join('');
     const exRows = extra.length ? extra.map((x, i) => `<div class="soc ex"><label class="tg"><span><b>Tampil</b></span><input type="checkbox" data-type="bool" data-path="settings.socialExtra.${i}.on" ${x.on !== false ? 'checked' : ''}><i></i></label>
         <input class="inp" data-path="settings.socialExtra.${i}.label" value="${esc(x.label || '')}" placeholder="Label (cth: LINKTREE)"><input class="inp" data-path="settings.socialExtra.${i}.url" value="${esc(x.url || '')}" placeholder="https://…"><button class="btn sm danger" data-a="soc-del" data-i="${i}">✕</button></div>`).join('') : '<p class="hint dim">Belum ada link kustom.</p>';
@@ -326,7 +333,7 @@
 
   /* ---------------- Lanjutan: urutan seksi, SEO, tracking, label ---------------- */
   const SEC_NAMES = { hero: 'Hero', marquee: 'Marquee', drop: 'Drop countdown', shop: 'Katalog produk', extra: 'Blok HTML tambahan', about: 'About / Manifesto', newsletter: 'Newsletter' };
-  const LABEL_NAMES = { navShop: 'Menu: katalog', navDrop: 'Menu: drop', navAbout: 'Menu: about', navJoin: 'Menu: join', bag: 'Tombol keranjang', search: 'Label cari', searchPh: 'Placeholder cari', all: 'Chip semua', saved: 'Chip saved', sale: 'Chip/badge sale', newest: 'Sort: terbaru', priceLow: 'Sort: termurah', priceHigh: 'Sort: termahal', az: 'Sort: A-Z', addToBag: 'Tombol tambah', soldOut: 'Teks habis', inStock: 'Teks tersedia', onlyLeft: 'Sisa stok ({n})', size: 'Label ukuran', qty: 'Label qty', yourBag: 'Judul keranjang', bagEmpty: 'Keranjang kosong', remove: 'Hapus item', subtotal: 'Subtotal', total: 'Total', shipping: 'Ongkir', free: 'Gratis', youSave: 'Hemat', checkout: 'Tombol checkout', loadMore: 'Load more', noResult: 'Tidak ada hasil', voucher: 'Placeholder voucher', apply: 'Tombol pakai', subscribe: 'Tombol subscribe', emailPh: 'Placeholder email', added: 'Toast tambah', menu: 'Menu mobile', scroll: 'Hero: teks scroll', backTop: 'Footer: back to top', days: 'Countdown: hari', hrs: 'Countdown: jam', min: 'Countdown: menit', sec: 'Countdown: detik', usecode: 'Popup: pakai kode' };
+  const LABEL_NAMES = { navShop: 'Menu: katalog', navDrop: 'Menu: drop', navAbout: 'Menu: about', navJoin: 'Menu: join', bag: 'Tombol keranjang', search: 'Label cari', searchPh: 'Placeholder cari', all: 'Chip semua', saved: 'Chip saved', sale: 'Chip/badge sale', newest: 'Sort: terbaru', priceLow: 'Sort: termurah', priceHigh: 'Sort: termahal', az: 'Sort: A-Z', addToBag: 'Tombol tambah', soldOut: 'Teks habis', inStock: 'Teks tersedia', onlyLeft: 'Sisa stok ({n})', size: 'Label ukuran', qty: 'Label qty', yourBag: 'Judul keranjang', bagEmpty: 'Keranjang kosong', remove: 'Hapus item', subtotal: 'Subtotal', total: 'Total', shipping: 'Ongkir', free: 'Gratis', youSave: 'Hemat', checkout: 'Tombol checkout', loadMore: 'Load more', noResult: 'Tidak ada hasil', voucher: 'Placeholder voucher', apply: 'Tombol pakai', subscribe: 'Tombol subscribe', emailPh: 'Placeholder email', added: 'Toast tambah', menu: 'Menu mobile', scroll: 'Hero: teks scroll', backTop: 'Footer: back to top', days: 'Countdown: hari', hrs: 'Countdown: jam', min: 'Countdown: menit', sec: 'Countdown: detik', usecode: 'Popup: pakai kode', preorder: 'Badge pre-order', share: 'Tombol share', sizeGuide: 'Tombol size guide', related: 'Judul produk terkait', recent: 'Judul terakhir dilihat', copied: 'Toast link disalin', checkoutVia: 'Tombol checkout ({ch})', chooseChannel: 'Judul pilih channel', name: 'Form: nama', phone: 'Form: no. HP', address: 'Form: alamat', note: 'Form: catatan', theme: 'Tombol tema', zoom: 'Tooltip zoom', eta: 'Estimasi pre-order', fillName: 'Peringatan nama', fillPhone: 'Peringatan no. HP', fillAddress: 'Peringatan alamat' };
   function vAdvanced() {
     const order = T.sectionOrder();
     const sec = order.map((k, i) => `<div class="crow" style="grid-template-columns:28px 1fr auto auto"><span class="mono dim">${i + 1}</span><b>${esc(SEC_NAMES[k])}</b><span class="pill ${S().sections[k] ? 'ok' : 'no'}">${S().sections[k] ? 'TAMPIL' : 'MATI'}</span><div class="acts" style="display:flex;gap:6px"><button class="btn sm" data-a="sec-up" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button><button class="btn sm" data-a="sec-dn" data-i="${i}" ${i === order.length - 1 ? 'disabled' : ''}>↓</button></div></div>`).join('');
@@ -336,6 +343,172 @@
       <div class="box"><h3>SEO & Berbagi Link</h3>${fText('Judul halaman (kosong = otomatis)', 'settings.seo.title')}${fArea('Deskripsi (meta description)', 'settings.seo.description', { rows: 3, ph: 'Ringkasan toko untuk Google / preview WhatsApp' })}${fText('Gambar preview (URL, 1200×630)', 'settings.seo.image', { type: 'url', ph: 'https://…/og.jpg' })}${fText('Favicon (emoji / URL gambar)', 'settings.seo.favicon', { ph: '✦' })}${fSelect('Bahasa halaman', 'settings.seo.lang', [['id', 'Indonesia'], ['en', 'English']])}<p class="hint">Preview link di WhatsApp/Google umumnya membaca tag dari file <code>index.html</code>, bukan hasil JavaScript — untuk gambar preview di sosial media, isi juga meta <code>og:image</code> di index.html.</p></div>
       <div class="box"><h3>Analytics & Pixel</h3>${fText('Google Analytics 4 (Measurement ID)', 'settings.tracking.ga', { ph: 'G-XXXXXXXXXX' })}${fText('Meta Pixel ID', 'settings.tracking.pixel', { ph: '1234567890123456' })}<p class="hint">Hanya dimuat di toko publik (bukan preview/admin). Event add-to-cart & checkout ikut terkirim. Pastikan sesuai kebijakan privasi/persetujuan cookie di wilayahmu.</p></div>
       <div class="box wide"><h3>Teks & Label Toko <button class="btn sm" data-a="lbl-reset">RESET KE DEFAULT</button></h3><p class="hint">Ganti semua teks antarmuka toko (tombol, menu, keranjang) — cocok untuk bahasa Indonesia penuh atau gaya brand sendiri. Kosongkan untuk memakai teks default. <code>{n}</code> = jumlah.</p><div class="row3">${labels}</div></div></div>`;
+  }
+
+
+  /* ---------------- Checkout (WhatsApp, email, dll) ---------------- */
+  function vCheckout() {
+    const ck = S().store.checkout, on = ck.channels || {}, act = T.channelList();
+    const rows = T.CHANNELS.map((d) => {
+      const wa = d.k === 'whatsapp', path = wa ? 'settings.store.whatsapp' : 'settings.store.checkout.' + d.k, v = wa ? S().store.whatsapp : ck[d.k];
+      const st = v ? (T.chanOk(d.k) ? '<span class="pill ok">VALID</span>' : '<span class="pill no">TIDAK VALID</span>') : '';
+      return `<div class="soc"><label class="tg"><span><b>${d.i} ${esc(d.n)}</b></span><input type="checkbox" data-type="bool" data-path="settings.store.checkout.channels.${d.k}" ${on[d.k] ? 'checked' : ''}><i></i></label>
+        <input class="inp" data-path="${path}" value="${esc(v || '')}" placeholder="${esc(d.ph)}" spellcheck="false">${st || '<span></span>'}</div>`;
+    }).join('');
+    return `<div class="grid2">
+      <div class="box wide"><h3>Channel Checkout</h3>
+        <p class="hint">Nyalakan channel yang ingin kamu pakai. Pembeli memilih sendiri lewat tombol di keranjang (jika hanya satu aktif, langsung satu tombol). Aktif di toko sekarang (${act.length}): ${act.length ? act.map((c) => esc(c.n)).join(' · ') : '<b>tidak ada — pembeli tidak bisa checkout</b>'}.</p>
+        <div class="soc-list">${rows}</div>
+        <p class="hint dim">WhatsApp, Email, LINE & SMS membuka pesan yang sudah terisi. Telegram, Instagram DM & Messenger tidak mendukung isi otomatis, jadi pesan disalin ke clipboard lalu chat dibuka (pembeli tinggal tempel).</p></div>
+      <div class="box"><h3>Gambar Produk di Pesanan</h3>
+        ${fSelect('Lampirkan gambar produk', 'settings.store.checkout.image', [['off', 'Tidak (teks saja)'], ['links', 'Link foto produk di dalam pesan'], ['receipt', 'Gambar struk (dibagikan / diunduh)'], ['both', 'Link + gambar struk (disarankan)']])}
+        <p class="hint">Link WhatsApp/email tidak bisa melampirkan file otomatis. Solusinya: setelah checkout, pembeli melihat <b>gambar struk</b> (foto produk, harga, diskon, total, data pembeli) yang bisa <b>dibagikan langsung (HP)</b> atau diunduh lalu dilampirkan di chat. Opsi “link” menaruh URL foto di pesan (hanya bila foto berupa URL, mis. Supabase Storage).</p>
+        ${fTog('Konfeti saat checkout berhasil', 'settings.store.checkout.confetti')}${fText('Catatan di bawah struk', 'settings.store.checkout.receiptNote')}</div>
+      <div class="box"><h3>Data Pembeli</h3><p class="hint">Kolom yang tampil di keranjang sebelum checkout. Isinya masuk ke pesan, struk, dan catatan pesanan.</p>
+        <div class="row2">${fTog('Nama', 'settings.store.checkout.askName')}${fTog('Wajib', 'settings.store.checkout.requireName')}</div>
+        <div class="row2">${fTog('No. HP', 'settings.store.checkout.askPhone')}${fTog('Wajib', 'settings.store.checkout.requirePhone')}</div>
+        <div class="row2">${fTog('Alamat', 'settings.store.checkout.askAddress')}${fTog('Wajib', 'settings.store.checkout.requireAddress')}</div>
+        ${fTog('Catatan', 'settings.store.checkout.askNote')}</div>
+      <div class="box wide"><h3>Pesan & Dialog Sukses</h3>
+        <div class="row2">${fText('Judul dialog sukses', 'settings.store.checkout.successTitle')}${fText('Subjek email', 'settings.store.checkout.emailSubject')}</div>
+        ${fArea('Teks dialog sukses', 'settings.store.checkout.successText', { rows: 2 })}
+        ${fArea('Template pesan', 'settings.store.template', { rows: 8 })}
+        <p class="hint">Placeholder: <code>{items}</code> <code>{summary}</code> <code>{customer}</code> <code>{subtotal}</code> <code>{discount}</code> <code>{shipping}</code> <code>{voucher}</code> <code>{total}</code> <code>{orderId}</code> <code>{brand}</code> <code>{name}</code> <code>{phone}</code> <code>{address}</code> <code>{note}</code> <code>{channel}</code>.</p></div></div>`;
+  }
+
+  /* ---------------- Maintenance (gaya + kustom) ---------------- */
+  const MT_STYLES = [['noise', 'Noise — glitch brutal [503]'], ['minimal', 'Minimal — bersih & tenang'], ['countdown', 'Countdown — hitung mundur besar'], ['terminal', 'Terminal — layar hacker mengetik'], ['glass', 'Glass — kartu kaca di atas aurora'], ['split', 'Split — teks + gambar berdampingan']];
+  function vMaintenance() {
+    const m = S().maint, on = S().store.maintenance;
+    return `<div class="grid2">
+      <div class="box wide"><h3>Mode Maintenance ${on ? '<span class="pill no">TOKO TERTUTUP</span>' : '<span class="pill ok">TOKO BUKA</span>'} <button class="btn sm acc" data-a="mt-prev">▶ LIHAT PREVIEW</button></h3>
+        ${fTog('Aktifkan maintenance (tutup toko untuk pengunjung)', 'settings.store.maintenance')}
+        ${fSelect('Gaya tampilan', 'settings.maint.style', MT_STYLES)}
+        <div class="row2">${fText('Judul (kosong = nama brand)', 'settings.maint.title')}${fText('Sub-judul kecil', 'settings.maint.subtitle', { ph: 'cth: Upgrade sistem & stok baru' })}</div>
+        ${fArea('Pesan', 'settings.store.maintenanceText', { rows: 2 })}
+        <p class="hint">Klik “Lihat preview” untuk melihat gaya terpilih di panel samping, tanpa menutup tokomu.</p></div>
+      <div class="box"><h3>Jadwal & Hitung Mundur</h3>
+        ${fDate('Mulai maintenance', 'settings.maint.from')}${fDate('Selesai / buka kembali', 'settings.maint.until')}
+        ${fTog('Buka toko otomatis saat waktu selesai', 'settings.maint.autoOpen', 'Pengunjung tidak perlu menunggu kamu mematikan manual')}
+        ${fTog('Tampilkan hitung mundur', 'settings.maint.showCountdown')}${fRange('Progress bar (0 = sembunyikan)', 'settings.maint.progress', 0, 100, 1)}</div>
+      <div class="box"><h3>Isi Tambahan</h3>
+        ${fTog('Tampilkan logo / nama brand', 'settings.maint.showLogo')}${fTog('Form “kabari saya” (kumpulkan email)', 'settings.maint.showSubscribe')}${fTog('Link sosial media', 'settings.maint.showSocial')}
+        ${fText('Kode intip untuk pemilik', 'settings.maint.bypassKey', { ph: 'cth: rahasia123' })}
+        <p class="hint">Buka <code>index.html?key=KODE</code> untuk melihat toko saat maintenance (berlaku selama tab terbuka).</p></div>
+      <div class="box wide"><h3>Latar & Kustom</h3>
+        ${fImage('Gambar latar (opsional; di gaya Split tampil di sisi kanan)', 'settings.maint.bgImage', { max: 1920 })}${fRange('Gelapkan gambar latar', 'settings.maint.overlay', 0, 0.95, 0.05)}
+        ${fArea('HTML kustom (ditampilkan di bawah konten)', 'settings.maint.customHtml', { rows: 4, code: true, ph: '<p>Hubungi kami: …</p>' })}
+        <p class="hint">HTML kustom hanya boleh diisi oleh admin tepercaya.</p></div></div>`;
+  }
+
+  /* ---------------- Font kustom (upload .ttf/.otf/.woff/.woff2) ---------------- */
+  function fontBox() {
+    const fonts = S().fonts || [];
+    const list = fonts.length ? fonts.map((f, i) => `<div class="crow" style="grid-template-columns:minmax(0,1fr) auto auto"><div><b style="font-family:'${esc(f.name)}',system-ui">${esc(f.name)} — Aa Bb 123</b><small class="mono dim" style="display:block">${esc(String(f.fmt).toUpperCase())} · ${(f.size / 1024).toFixed(0)} KB${String(f.url).startsWith('data:') ? ' · tersimpan lokal' : ' · cloud'}</small></div>
+        <div class="pre" style="gap:6px"><button class="btn sm" data-a="font-use" data-i="${i}" data-w="displayFont">JUDUL</button><button class="btn sm" data-a="font-use" data-i="${i}" data-w="bodyFont">BODY</button><button class="btn sm" data-a="font-use" data-i="${i}" data-w="monoFont">MONO</button></div>
+        <button class="btn sm danger" data-a="font-del" data-i="${i}">✕</button></div>`).join('') : '<p class="hint dim">Belum ada font kustom.</p>';
+    return `<div class="box wide"><h3>Font Kustom <label class="btn sm acc" style="cursor:pointer">+ UPLOAD FONT<input type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden data-fontup="1"></label></h3>
+      <p class="hint">Upload file <b>.ttf / .otf / .woff / .woff2</b>, lalu pakai untuk judul, body, atau label mono. ${T.remote ? 'File diupload ke Supabase Storage (maks 8 MB).' : 'Mode lokal: font disimpan di browser ini (maks 1,5 MB per font; pakai Supabase agar ringan & tampil di semua perangkat).'} Pastikan kamu punya lisensi font tersebut.</p>
+      <div class="tbl">${list}</div></div>`;
+  }
+  async function uploadFontFile(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (['ttf', 'otf', 'woff', 'woff2'].indexOf(ext) < 0) { toast('FORMAT HARUS TTF / OTF / WOFF / WOFF2'); return; }
+    const limit = T.remote ? 8 * 1048576 : 1.5 * 1048576;
+    if (file.size > limit) { toast('FILE TERLALU BESAR (maks ' + (limit / 1048576) + ' MB)'); return; }
+    toast('MEMERIKSA FONT…');
+    const buf = await file.arrayBuffer(), h = new Uint8Array(buf, 0, 4), sig = String.fromCharCode.apply(null, h);
+    const okSig = sig === 'OTTO' || sig === 'wOFF' || sig === 'wOF2' || sig === 'true' || (h[0] === 0 && h[1] === 1 && h[2] === 0 && h[3] === 0);
+    let base = file.name.replace(/\.[^.]+$/, '').replace(/[^\w \-]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 32) || 'Custom Font';
+    const taken = (n) => T.FONTS.some((f) => f.n === n) || (S().fonts || []).some((f) => f.name === n);
+    let name = base, k = 2; while (taken(name)) name = base + ' ' + k++;
+    if (!okSig) { toast('FILE BUKAN FONT YANG VALID'); return; }
+    try { const ff = new FontFace(name, buf); await ff.load(); document.fonts.add(ff); } catch (e) { console.error(e); toast('FONT TIDAK BISA DIMUAT (RUSAK?)'); return; }
+    let url;
+    try {
+      if (T.remote && T.auth.isAdmin()) url = await T.uploadFont(file, ext);
+      else url = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).replace(/^data:[^;]*;/, 'data:font/' + (ext === 'ttf' ? 'ttf' : ext) + ';')); fr.onerror = rej; fr.readAsDataURL(file); });
+    } catch (e) { console.error(e); toast('GAGAL UPLOAD FONT'); return; }
+    T.update((x) => { x.settings.fonts = x.settings.fonts || []; x.settings.fonts.push({ id: T.uid('f'), name, url, fmt: ext, size: file.size }); });
+    syncFonts(); render(); flashSaved(); toast('FONT “' + name + '” SIAP DIPAKAI ✦');
+  }
+  function syncFonts() { const el = $('#admFonts'); if (el) el.textContent = T.fontFaceCSS(); }
+
+  /* ---------------- Riwayat versi (snapshot) & CSV produk ---------------- */
+  const SNAPK = 'trsh_snaps';
+  const snaps = () => { try { return JSON.parse(localStorage.getItem(SNAPK)) || []; } catch (e) { return []; } };
+  function saveSnap(label, auto) {
+    const dbx = JSON.parse(JSON.stringify(T.get())); delete dbx.subscribers;
+    const json = JSON.stringify(dbx);
+    if (auto && json.length > 1.5e6) return false; // jangan boros kuota otomatis
+    const a = snaps(); a.unshift({ id: T.uid('s'), t: Date.now(), label, size: json.length, db: json });
+    while (a.length > 10) a.pop();
+    for (;;) { try { localStorage.setItem(SNAPK, JSON.stringify(a)); return true; } catch (e) { if (a.length <= 1) return false; a.pop(); } }
+  }
+  const CSV_COLS = ['id', 'name', 'price', 'category', 'stock', 'sizes', 'badge', 'sku', 'featured', 'active', 'sale_on', 'sale_type', 'sale_value', 'sale_start', 'sale_end', 'preorder_on', 'preorder_eta', 'desc'];
+  const csvCell = (v) => { v = String(v == null ? '' : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  function productsCSV() {
+    const rows = [CSV_COLS].concat(db().products.map((p) => { const sl = p.sale || {}, po = p.preorder || {}; return [p.id, p.name, p.price, p.category, p.stock, (p.sizes || []).join('|'), p.badge, p.sku || '', p.featured ? 1 : 0, p.active !== false ? 1 : 0, sl.on ? 1 : 0, sl.type || 'percent', sl.value || 0, sl.start || '', sl.end || '', po.on ? 1 : 0, po.eta || '', p.desc || '']; }));
+    return '\ufeff' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n');
+  }
+  function parseCSV(t) {
+    t = t.replace(/^\ufeff/, ''); const rows = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < t.length; i++) {
+      const c = t[i];
+      if (q) { if (c === '"') { if (t[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(cell); cell = ''; if (row.some((x) => x !== '')) rows.push(row); row = []; }
+      else cell += c;
+    }
+    row.push(cell); if (row.some((x) => x !== '')) rows.push(row);
+    return rows;
+  }
+  function importProductsCSV(text) {
+    const rows = parseCSV(text); if (rows.length < 2) throw new Error('CSV kosong');
+    const head = rows[0].map((h) => h.trim().toLowerCase()), idx = (k) => head.indexOf(k);
+    if (idx('name') < 0) throw new Error('Kolom "name" wajib ada');
+    let upd = 0, add = 0;
+    T.update((x) => {
+      rows.slice(1).forEach((r) => {
+        const g = (k) => (idx(k) >= 0 ? (r[idx(k)] || '').trim() : undefined);
+        const name = g('name'); if (!name) return;
+        let p = (g('id') && x.products.find((q) => q.id === g('id'))) || x.products.find((q) => q.name.toLowerCase() === name.toLowerCase());
+        const isNew = !p;
+        if (isNew) { p = { id: T.uid('p'), name, price: 0, category: (x.categories[0] || {}).id || '', stock: 0, sizes: [], badge: '', desc: '', featured: false, active: true, images: [], createdAt: Date.now(), sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' }, preorder: { on: false, eta: '', limit: 5 } }; x.products.push(p); }
+        p.name = name;
+        const num = (k) => { const v = Number(String(g(k)).replace(/[^\d.\-]/g, '')); return isNaN(v) ? undefined : v; };
+        if (g('price') !== undefined && num('price') !== undefined) p.price = Math.max(0, num('price'));
+        if (g('stock') !== undefined && num('stock') !== undefined) p.stock = Math.max(0, Math.round(num('stock')));
+        if (g('category')) p.category = g('category');
+        if (g('sizes') !== undefined) p.sizes = g('sizes').split(/[|;]/).map((z) => z.trim()).filter(Boolean);
+        if (g('badge') !== undefined) p.badge = g('badge');
+        if (g('sku') !== undefined) p.sku = g('sku');
+        if (g('desc') !== undefined) p.desc = g('desc');
+        const bool = (k) => /^(1|true|ya|yes|y)$/i.test(g(k) || '');
+        if (g('featured') !== undefined) p.featured = bool('featured');
+        if (g('active') !== undefined) p.active = g('active') === '' ? true : bool('active');
+        p.sale = Object.assign({ on: false, type: 'percent', value: 0, start: '', end: '' }, p.sale || {});
+        if (g('sale_on') !== undefined) p.sale.on = bool('sale_on');
+        if (g('sale_type') && ['percent', 'amount', 'price'].indexOf(g('sale_type')) >= 0) p.sale.type = g('sale_type');
+        if (num('sale_value') !== undefined) p.sale.value = num('sale_value');
+        if (g('sale_start') !== undefined) p.sale.start = g('sale_start');
+        if (g('sale_end') !== undefined) p.sale.end = g('sale_end');
+        p.preorder = Object.assign({ on: false, eta: '', limit: 5 }, p.preorder || {});
+        if (g('preorder_on') !== undefined) p.preorder.on = bool('preorder_on');
+        if (g('preorder_eta') !== undefined) p.preorder.eta = g('preorder_eta');
+        if (isNew) add++; else upd++;
+      });
+    });
+    return { upd, add };
+  }
+  function snapBox() {
+    const a = snaps();
+    return `<div class="box wide"><h3>Riwayat Versi <button class="btn sm acc" data-a="snap-save">+ SIMPAN SNAPSHOT SEKARANG</button></h3>
+      <p class="hint">Cadangan otomatis (maks. 10) dari produk, kategori & pengaturan — disimpan di browser ini. Dibuat otomatis tiap kali kamu login. Pulihkan bila ada perubahan yang keliru.</p>
+      ${a.length ? a.map((x) => `<div class="crow" style="grid-template-columns:minmax(0,1fr) auto auto"><div><b>${new Date(x.t).toLocaleString('id-ID')}</b><small class="mono dim" style="display:block">${esc(x.label)} · ${(x.size / 1024).toFixed(0)} KB</small></div><button class="btn sm" data-a="snap-restore" data-id="${esc(x.id)}">PULIHKAN</button><button class="btn sm danger" data-a="snap-del" data-id="${esc(x.id)}">✕</button></div>`).join('') : '<p class="hint dim">Belum ada snapshot.</p>'}</div>
+    <div class="box wide"><h3>Produk via CSV (Excel / Google Sheets)</h3><p class="hint">Ekspor semua produk ke CSV, ubah massal di spreadsheet (harga, stok, diskon, pre-order), lalu impor kembali. Produk dicocokkan lewat <code>id</code> atau nama; baris baru otomatis ditambahkan. Foto tidak ikut CSV.</p>
+      <div class="pre"><button class="btn acc" data-a="csv-exp">EXPORT CSV</button><label class="btn" style="cursor:pointer">IMPORT CSV<input type="file" accept=".csv,text/csv" id="csvIn" hidden></label></div></div>`;
   }
 
   const STATUS = [['new', 'BARU'], ['paid', 'DIBAYAR'], ['shipped', 'DIKIRIM'], ['done', 'SELESAI'], ['cancel', 'BATAL']];
@@ -368,18 +541,19 @@
         <p class="hint">Mode lokal: login ini hanya penghalang di sisi browser, bukan keamanan sungguhan. Hubungkan Supabase (assets/js/config.js) untuk login yang aman.</p>`}</div>
       <div class="box"><h3>Backup & Restore</h3><p class="hint">Ekspor semua data (produk, kategori, pengaturan, pesanan) ke file JSON, atau impor dari backup.</p>
         <div class="pre"><button class="btn acc" data-a="exp">EXPORT JSON</button><label class="btn" style="cursor:pointer">IMPORT JSON<input type="file" id="impIn" accept="application/json" hidden></label></div></div>
-      <div class="box"><h3>Reset</h3><p class="hint">Kembalikan seluruh produk, kategori, dan pengaturan ke bawaan. Pesanan tidak dihapus.</p><button class="btn danger" data-a="reset">RESET KE DEFAULT</button></div>
+      ${snapBox()}<div class="box"><h3>Reset</h3><p class="hint">Kembalikan seluruh produk, kategori, dan pengaturan ke bawaan. Pesanan tidak dihapus.</p><button class="btn danger" data-a="reset">RESET KE DEFAULT</button></div>
       <div class="box"><h3>Koneksi</h3>${R
         ? `<p class="hint"><b>Supabase terhubung ☁</b> — produk, kategori, pengaturan, pesanan, subscriber, dan foto tersimpan di database dan tampil realtime ke semua pengunjung.</p>`
         : `<p class="hint"><b>Mode lokal</b> — data hanya di browser ini (${(T.size() / 1024).toFixed(0)} KB dari ±5000 KB). Isi <code>assets/js/config.js</code> untuk menghubungkan Supabase.</p>`}</div></div>`;
   }
 
-  const VIEWS = { dashboard: vDashboard, products: vProducts, categories: vCategories, promo: vPromo, social: vSocial, advanced: vAdvanced, appearance: vAppearance, content: vContent, features: vFeatures, orders: vOrders, system: vSystem };
+  const VIEWS = { checkout: vCheckout, maintenance: vMaintenance, dashboard: vDashboard, products: vProducts, categories: vCategories, promo: vPromo, social: vSocial, advanced: vAdvanced, appearance: vAppearance, content: vContent, features: vFeatures, orders: vOrders, system: vSystem };
 
   function render() {
     const t = TABS.find((x) => x[0] === tab) || TABS[0];
     $('#title').textContent = t[1];
     $('#nav').innerHTML = TABS.map((x) => `<button class="${x[0] === tab ? 'on' : ''}" data-a="tab" data-t="${x[0]}"><span>${x[2]}</span>${x[1]}</button>`).join('');
+    syncFonts();
     $('#view').innerHTML = (VIEWS[tab] || vDashboard)();
     $('#brandName').textContent = S().brand.name;
   }
@@ -413,6 +587,16 @@
       const files = [...el.files];
       for (const f of files) { try { const u = await fileToData(f, T.remote ? 1400 : 900); T.update((d) => d.products[editing].images.push(u)); } catch (err) { console.error(err); toast('Gagal ' + (T.remote ? 'upload ' : 'membaca ') + f.name); } }
       openEditor(editing); flashSaved();
+    } else if (el.dataset && el.dataset.fontup) {
+      const f = el.files[0]; el.value = ''; if (f) uploadFontFile(f);
+    } else if (el.id === 'csvIn') {
+      const f = el.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        try { const res = importProductsCSV(String(r.result)); toast(res.upd + ' DIPERBARUI · ' + res.add + ' DITAMBAH ✦'); render(); flashSaved(); }
+        catch (err) { console.error(err); toast('CSV TIDAK VALID: ' + (err.message || '')); }
+      };
+      r.readAsText(f); el.value = '';
     } else if (el.id === 'impIn') {
       const f = el.files[0]; if (!f) return;
       const r = new FileReader();
@@ -435,6 +619,31 @@
       case 'go-products-new': go('products'); addProduct(); break;
       case 'go-categories': go('categories'); break;
       case 'go-promo': go('promo'); break;
+      case 'go-checkout': go('checkout'); break;
+      case 'alt-acc-clear': T.set('settings.theme.alt.accent', ''); render(); flashSaved(); break;
+      case 'mt-prev': { document.body.classList.add('pv-on'); $('#pvFrame').src = 'index.html?preview=1&maint=1&t=' + Date.now(); break; }
+      case 'font-use': { const f = (S().fonts || [])[i]; if (f) { T.set('settings.theme.' + el.dataset.w, f.name); render(); flashSaved(); toast('FONT DIPAKAI ✦'); } break; }
+      case 'font-del': {
+        const f = (S().fonts || [])[i]; if (!f) break;
+        ask('Hapus font “' + f.name + '”?\nBagian yang memakainya kembali ke font bawaan.').then((ok) => {
+          if (!ok) return;
+          T.update((x) => { const th = x.settings.theme; ['displayFont', 'bodyFont', 'monoFont'].forEach((k) => { if (th[k] === f.name) th[k] = k === 'monoFont' ? 'JetBrains Mono' : k === 'bodyFont' ? 'Inter' : 'Unbounded'; }); x.settings.fonts.splice(i, 1); });
+          syncFonts(); render(); flashSaved();
+        });
+        break;
+      }
+      case 'snap-save': toast(saveSnap('Manual', false) ? 'SNAPSHOT DISIMPAN ✦' : 'GAGAL — KUOTA PENUH'); render(); break;
+      case 'snap-restore': {
+        const x = snaps().find((q) => q.id === el.dataset.id); if (!x) break;
+        ask('Pulihkan versi ' + new Date(x.t).toLocaleString('id-ID') + '?\nProduk, kategori & pengaturan saat ini akan diganti (snapshot otomatis dibuat dulu).', 'PULIHKAN', false).then((ok) => {
+          if (!ok) return;
+          saveSnap('Sebelum pemulihan', false);
+          try { T.importJSON(JSON.stringify({ v: 1, db: JSON.parse(x.db) })); syncFonts(); render(); toast('VERSI DIPULIHKAN ✦'); } catch (err) { console.error(err); toast('GAGAL MEMULIHKAN'); }
+        });
+        break;
+      }
+      case 'snap-del': { const a = snaps().filter((q) => q.id !== el.dataset.id); try { localStorage.setItem(SNAPK, JSON.stringify(a)); } catch (x) {} render(); break; }
+      case 'csv-exp': dl('trsh-produk-' + new Date().toISOString().slice(0, 10) + '.csv', productsCSV(), 'text/csv'); break;
       case 'd-set': {
         const path = el.dataset.path, v = el.dataset.clear ? '' : new Date(Date.now() + Number(el.dataset.add)).toISOString();
         T.set(path, v);
@@ -531,7 +740,7 @@
     T.update((x) => x.products.unshift({
       id: T.uid('p'), name: 'PRODUK BARU', price: 100000, category: (x.categories[0] || {}).id || '', stock: 10,
       sizes: ['S', 'M', 'L', 'XL'], badge: 'NEW', desc: '', featured: false, active: true, images: [], createdAt: Date.now(),
-      sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' },
+      sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' }, preorder: { on: false, eta: '', limit: 5 },
     }));
     if (tab === 'products') $('#ptbody').innerHTML = productRows();
     openEditor(0);
@@ -558,6 +767,7 @@
   /* ---------------- auth ---------------- */
   function enter() {
     $('#login').hidden = true; $('#app').hidden = false; render();
+    if (!sessionStorage.getItem('trsh_autosnap')) { sessionStorage.setItem('trsh_autosnap', '1'); try { saveSnap('Otomatis saat login', true); } catch (e) {} }
     const lv = $('.side-f .live'); if (lv) lv.innerHTML = '<span class="dot"></span> ' + (T.remote ? 'SUPABASE ☁ REALTIME' : 'MODE LOKAL (BELUM TERHUBUNG)');
   }
   if (T.remote) { $('#em').hidden = false; $('#em').required = true; $('#em').focus(); }

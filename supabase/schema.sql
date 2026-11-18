@@ -150,6 +150,21 @@ create policy "product-images admin all" on storage.objects
   using      (bucket_id = 'product-images' and public.is_admin())
   with check (bucket_id = 'product-images' and public.is_admin());
 
+-- 7b) STORAGE: FONT KUSTOM (.ttf/.otf/.woff/.woff2) ---------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('store-fonts', 'store-fonts', true, 8388608,
+        array['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/font-woff', 'application/x-font-ttf', 'application/x-font-otf', 'application/octet-stream'])
+on conflict (id) do update
+  set public = true,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "store-fonts admin all" on storage.objects;
+create policy "store-fonts admin all" on storage.objects
+  for all to authenticated
+  using      (bucket_id = 'store-fonts' and public.is_admin())
+  with check (bucket_id = 'store-fonts' and public.is_admin());
+
 -- 8) DAFTARKAN EMAIL ADMIN ----------------------------------
 -- Ganti email di bawah dengan email akun admin kamu (lihat README),
 -- hapus tanda "--" di depan, lalu jalankan:

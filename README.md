@@ -35,6 +35,8 @@ python3 -m http.server 8080
 # admin → http://localhost:8080/admin.html
 ```
 
+**Password admin default: `rude123`** (ganti di Admin → Sistem).
+
 ## Fitur admin (semua realtime)
 
 | Menu | Isi |
@@ -49,6 +51,25 @@ python3 -m http.server 8080
 | Sistem | Ganti password, export / import backup JSON, reset |
 
 Tombol **LIVE PREVIEW** membuka toko di panel samping (mode desktop/mobile) yang ikut berubah saat Anda mengetik.
+
+## Update v4 — checkout multi-channel, font kustom, maintenance bergaya
+
+**Checkout lewat banyak channel** (tab *Checkout*): WhatsApp, **Email**, Telegram, LINE, Instagram DM, Messenger, dan SMS — nyalakan sesuai kebutuhan; pembeli memilih sendiri di keranjang.
+- **Gambar produk di pesanan:** link foto/produk di dalam pesan, dan/atau **gambar struk** (foto produk, harga coret, diskon, voucher, ongkir, total, data pembeli) yang bisa **dibagikan langsung** (Web Share di HP), diunduh, atau dilampirkan manual. Link WhatsApp/email memang tidak bisa menempelkan file otomatis — struk gambar adalah solusinya.
+- **Data pembeli** (nama, no. HP, alamat, catatan; masing-masing opsional/wajib) ikut ke pesan, struk, dan catatan pesanan di admin. Template pesan punya placeholder baru (`{customer}`, `{name}`, `{channel}`, `{brand}`, dll). Dialog sukses dengan konfeti.
+- Telegram/Instagram/Messenger tidak mendukung isi otomatis: pesan disalin ke clipboard lalu chat dibuka.
+
+**Font kustom** (tab *Tampilan*): upload `.ttf` / `.otf` / `.woff` / `.woff2`, lalu pakai untuk judul, body, atau label mono. File divalidasi sebelum disimpan. Dengan Supabase, font diupload ke bucket `store-fonts` (jalankan ulang `schema.sql`); di mode lokal disimpan di browser (maks 1,5 MB).
+
+**Maintenance bergaya & bisa dikustom** (tab *Maintenance*): 6 gaya — Noise, Minimal, Countdown, Terminal, Glass, Split — dengan judul/sub-judul/pesan, jadwal mulai & selesai (buka otomatis saat waktu habis), hitung mundur, progress bar, form "kabari saya", sosial media, gambar latar, HTML kustom, dan **kode intip** (`index.html?key=KODE`) agar pemilik tetap bisa melihat toko. Tombol *Lihat preview* menampilkannya tanpa menutup toko.
+
+**Fitur tambahan**
+- Tombol ☀/☾ **tema terang/gelap** untuk pengunjung; link langsung ke produk (`#p-id`) + tombol **Share**; **zoom foto** (lightbox); **produk terkait**; bagian **terakhir dilihat**; **size guide** per kategori; **pre-order** per produk (badge, estimasi, kuota).
+- Admin: **Riwayat Versi** (snapshot otomatis saat login + manual, bisa dipulihkan) dan **Export/Import produk via CSV** (edit massal di Excel/Sheets).
+
+**Animasi & UI baru:** foto terbang ke keranjang, ledakan ♥ di wishlist, tombol magnetik, judul hero "decode", wipe judul seksi, riak pada tombol, marquee miring mengikuti scroll, 3 gaya loading (angka / logo berdenyut / tirai). Konfigurasi UI: kepadatan jarak, intensitas bayangan, gaya tombol (garis/solid/gradien), warna aksen kedua, pola latar, gaya kursor, efek chrome pada judul.
+
+**Perbaikan:** keranjang di HP kini bisa discroll utuh (form pembeli + channel), layar maintenance tidak melebar di HP, aksen neon otomatis digelapkan di tema terang agar terbaca, daftar "terakhir dilihat" langsung ter-update.
 
 ## Update v3 — perbaikan bug, popup, glass & animasi
 
@@ -117,6 +138,7 @@ Tombol **LIVE PREVIEW** membuka toko di panel samping (mode desktop/mobile) yang
 - Setiap perubahan di admin disimpan otomatis (jeda ±0,5 detik) dan **tampil realtime di semua pengunjung** lewat Supabase Realtime.
 - `localStorage` hanya dipakai sebagai cache agar toko tampil instan; sumber kebenaran adalah Supabase.
 - Pesanan yang gagal terkirim (offline) disimpan sementara di browser pembeli dan dicoba lagi saat toko dibuka berikutnya.
+- Kosongkan `config.js` untuk kembali ke **mode lokal** (localStorage, password `rude123`).
 
 ## Menambah fitur sendiri
 

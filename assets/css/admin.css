@@ -196,3 +196,9 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
   .imgf{grid-template-columns:56px minmax(0,1fr)}.imgf>img,.imgf>i{width:56px;height:56px}
   .row3{grid-template-columns:minmax(0,1fr)}
 }
+
+/* v4 */
+.tg small{display:block}
+.crow b{overflow-wrap:anywhere}
+.ck-hint{color:var(--dim)}
+@media (max-width:900px){.crow{grid-template-columns:minmax(0,1fr) auto!important}}

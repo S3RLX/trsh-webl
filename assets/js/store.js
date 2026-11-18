@@ -70,7 +70,7 @@
   }
   function fontStack(name, kind) {
     const tail = kind === 'mono' ? 'ui-monospace,Menlo,monospace' : 'system-ui,-apple-system,sans-serif';
-    return "'" + name + "'," + tail;
+    return "'" + String(name).replace(/[^\w \-]/g, '') + "'," + tail;
   }
 
   /* ---------- Default data ---------- */
@@ -79,7 +79,7 @@
   const P = (id, name, price, category, stock, sizes, badge, desc, featured) => ({
     id, name, price, category, stock, sizes, badge: badge || '', desc,
     featured: !!featured, active: true, images: [], createdAt: Date.now() - Math.random() * 1e9,
-    sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' },
+    sku: '', sale: { on: false, type: 'percent', value: 0, start: '', end: '' }, preorder: { on: false, eta: '', limit: 5 },
   });
   const LABELS = {
     navShop: 'CATALOG', navDrop: 'DROP', navAbout: 'ABOUT', navJoin: 'JOIN',
@@ -92,6 +92,9 @@
     voucher: 'KODE VOUCHER', apply: 'PAKAI', subscribe: 'SUBSCRIBE →', emailPh: 'EMAIL@KAMU.COM',
     added: 'DITAMBAHKAN KE BAG ✦', preorderClosed: 'TOKO SEDANG TUTUP', menu: 'MENU',
     scroll: 'SCROLL ↓', backTop: 'BACK TO TOP ↑', days: 'DAYS', hrs: 'HRS', min: 'MIN', sec: 'SEC', usecode: 'PAKAI KODE',
+    preorder: 'PRE-ORDER', share: 'SHARE', sizeGuide: 'SIZE GUIDE', related: 'KAMU MUNGKIN SUKA', recent: 'TERAKHIR DILIHAT',
+    copied: 'LINK DISALIN ✦', checkoutVia: 'CHECKOUT VIA {ch}', chooseChannel: 'CHECKOUT VIA', name: 'NAMA', phone: 'NO. WA / HP',
+    address: 'ALAMAT', note: 'CATATAN', theme: 'TEMA', zoom: 'KLIK UNTUK ZOOM', eta: 'ESTIMASI', fillName: 'ISI NAMA DULU', fillPhone: 'ISI NOMOR DULU', fillAddress: 'ISI ALAMAT DULU',
   };
   const CL = ['S', 'M', 'L', 'XL'];
 
@@ -104,6 +107,8 @@
         radius: 2, gridCols: 4, ratio: '4/5', animSpeed: 1,
         maxWidth: 0, fontScale: 1, btnShape: 'sharp', cardStyle: 'default', imgFit: 'cover', navSticky: true,
         cardHover: 'lift', revealStyle: 'up',
+        density: 'normal', shadow: 0.5, accent2: '#7a5cff', btnStyle: 'outline', chromeText: true, bgPattern: 'grid', loaderStyle: 'counter', cursorStyle: 'ring',
+        alt: { bg: '#f3f1ec', fg: '#0c0c0e', muted: '#66666c', card: '#ffffff', line: '#d9d6cf', accent: '' },
         glass: { on: false, blur: 18, opacity: 0.5, border: 0.16, saturate: 1.4, nav: true, cards: true, panels: true, ui: true },
       },
       effects: {
@@ -111,6 +116,7 @@
         reveal: true, glitch: true, tilt: true, sparkles: true,
         progress: true, hoverSwap: true, smooth: true, backTop: true,
         aurora: false, parallax: true, heroIntro: true, imgFade: true, bump: true, marqueePause: true,
+        flyToCart: true, heartBurst: true, magnetic: false, scramble: false, splitReveal: true, ripple: true, marqueeSkew: false,
       },
       hero: {
         eyebrow: '[ DROP 001 — UNDERGROUND SERIES ]',
@@ -130,6 +136,11 @@
       vouchers: [
         { id: 'v1', code: 'TRSH10', type: 'percent', value: 10, minSpend: 0, maxDiscount: 0, expires: '', active: false },
       ],
+      maint: {
+        style: 'noise', title: '', text: '', subtitle: '', until: '', from: '', showCountdown: true, autoOpen: true, showSubscribe: true, showSocial: true,
+        showLogo: true, bgImage: '', overlay: 0.65, bypassKey: '', progress: 0, customHtml: '',
+      },
+      fonts: [],
       popup: {
         enabled: false, title: 'WELCOME TO THE NOISE', text: 'Pakai kode TRSH10 untuk diskon 10% di order pertama.',
         cta: 'SHOP NOW', link: '#shop', delay: 4, frequency: 'session', code: 'TRSH10',
@@ -163,16 +174,25 @@
         ordering: true, closedText: 'TOKO SEDANG TUTUP — PESANAN DIBUKA KEMBALI SEGERA.',
         shipFee: 0, freeShipMin: 0, shipNote: '', minOrder: 0, voucherBox: true,
         waFloat: false, waFloatText: 'CHAT', waFloatPos: 'right', waFloatMsg: 'Halo, saya mau tanya produk.',
+        themeToggle: false, share: true, recent: true, related: true, lightbox: true, deepLinks: true,
+        checkout: {
+          channels: { whatsapp: true, email: false, telegram: false, line: false, instagram: false, messenger: false, sms: false },
+          email: '', emailSubject: 'Pesanan {orderId} — {brand}', telegram: '', line: '', instagram: '', messenger: '', sms: '',
+          image: 'both', askName: true, askPhone: false, askAddress: false, askNote: true,
+          requireName: false, requirePhone: false, requireAddress: false,
+          successTitle: 'PESANAN SIAP DIKIRIM ✦', successText: 'Kirim pesan ini ke penjual untuk menyelesaikan order. Lampirkan gambar struk agar pesanan lebih cepat diproses.',
+          confetti: true, receiptNote: 'Terima kasih sudah belanja!',
+        },
         maintenance: false, maintenanceText: 'SEDANG MAINTENANCE. KAMI SEGERA KEMBALI.',
-        template: 'Halo TRSH! Saya mau order:\n{items}\n\n{summary}\nTotal: {total}\n\nNama:\nAlamat:\nCatatan:',
+        template: 'Halo TRSH! Saya mau order:\n{items}\n\n{summary}\nTotal: {total}\n\n{customer}',
       },
       custom: { flags: [], css: '', extraHtml: '' },
       admin: { password: 'rude123' },
     },
     categories: [
-      { id: 'tees', name: 'TEES', visible: true },
-      { id: 'hoodies', name: 'HOODIES', visible: true },
-      { id: 'bottoms', name: 'BOTTOMS', visible: true },
+      { id: 'tees', name: 'TEES', visible: true, sizeGuide: 'UKURAN | LEBAR DADA | PANJANG\nS | 52 | 68\nM | 55 | 70\nL | 58 | 72\nXL | 61 | 74' },
+      { id: 'hoodies', name: 'HOODIES', visible: true, sizeGuide: 'UKURAN | LEBAR DADA | PANJANG\nM | 58 | 68\nL | 61 | 70\nXL | 64 | 72' },
+      { id: 'bottoms', name: 'BOTTOMS', visible: true, sizeGuide: 'UKURAN | PINGGANG | PANJANG\n30 | 78 | 100\n32 | 82 | 102\n34 | 86 | 104' },
       { id: 'accessories', name: 'ACCESSORIES', visible: true },
     ],
     products: [
@@ -583,6 +603,62 @@ ${bars}
     return out;
   }
 
+  /* ---------- Font kustom (upload .ttf/.otf/.woff/.woff2) ---------- */
+  const FONT_FMT = { ttf: 'truetype', otf: 'opentype', woff: 'woff', woff2: 'woff2' };
+  function safeFont(u) {
+    u = String(u || '').trim();
+    if (/^data:(font\/[\w.+-]+|application\/[\w.+-]*font[\w.+-]*|application\/octet-stream);base64,[a-z0-9+/=]+$/i.test(u)) return u;
+    const x = safeUrl(u);
+    return /^(mailto:|tel:|#)/i.test(x) ? '' : x;
+  }
+  const famName = (n) => String(n || '').replace(/[^\w \-]/g, '').trim().slice(0, 40);
+  function fontFaceCSS() {
+    return (db.settings.fonts || []).map((f) => {
+      const u = safeFont(f.url), fam = famName(f.name);
+      if (!u || !fam) return '';
+      return "@font-face{font-family:'" + fam + "';src:url('" + u.replace(/'/g, '%27') + "') format('" + (FONT_FMT[f.fmt] || 'truetype') + "');font-display:swap;font-weight:100 900}";
+    }).filter(Boolean).join('\n');
+  }
+  const customFontNames = () => (db.settings.fonts || []).map((f) => famName(f.name)).filter(Boolean);
+
+  /* ---------- Channel checkout (WhatsApp, email, dll) ---------- */
+  const CHANNELS = [
+    { k: 'whatsapp', n: 'WhatsApp', i: '✆', ph: '081234567890' },
+    { k: 'email', n: 'Email', i: '✉', ph: 'toko@domain.com' },
+    { k: 'telegram', n: 'Telegram', i: '➤', ph: '@username', copy: 1 },
+    { k: 'line', n: 'LINE', i: 'L', ph: '@akunLINE (Official Account)' },
+    { k: 'instagram', n: 'Instagram DM', i: '◎', ph: '@akuninstagram', copy: 1 },
+    { k: 'messenger', n: 'Messenger', i: '✦', ph: 'namahalaman', copy: 1 },
+    { k: 'sms', n: 'SMS', i: '✎', ph: '081234567890' },
+  ];
+  const chanVal = (k) => (k === 'whatsapp' ? db.settings.store.whatsapp : (db.settings.store.checkout || {})[k]) || '';
+  const handle = (v) => String(v || '').trim().replace(/^https?:\/\/[^/]+\//i, '').replace(/^@/, '').replace(/[^\w.\-]/g, '');
+  // true bila nilai channel cukup valid untuk dipakai
+  function chanOk(k) {
+    const v = String(chanVal(k)).trim();
+    if (k === 'whatsapp' || k === 'sms') return waNumber(v).length >= 8;
+    if (k === 'email') return MAIL.test(v);
+    if (k === 'line') return /^@?[\w.\-]{2,}$/.test(v);
+    return handle(v).length >= 2;
+  }
+  // daftar channel yang diaktifkan admin DAN terisi valid
+  function channelList() {
+    const on = (db.settings.store.checkout || {}).channels || {};
+    return CHANNELS.filter((c) => on[c.k] && chanOk(c.k));
+  }
+  // URL tujuan untuk sebuah channel; channel tanpa prefill (copy:1) hanya membuka chat — pesan disalin ke clipboard
+  function channelUrl(k, text, subject) {
+    const v = String(chanVal(k)).trim(), q = encodeURIComponent(text || '');
+    if (k === 'whatsapp') return 'https://wa.me/' + waNumber(v) + '?text=' + q;
+    if (k === 'email') return 'mailto:' + v + '?subject=' + encodeURIComponent(subject || '') + '&body=' + q;
+    if (k === 'telegram') return 'https://t.me/' + handle(v);
+    if (k === 'line') return 'https://line.me/R/oaMessage/' + (v.startsWith('@') ? v : '@' + v) + '/?' + q;
+    if (k === 'instagram') return 'https://ig.me/m/' + handle(v);
+    if (k === 'messenger') return 'https://m.me/' + handle(v);
+    if (k === 'sms') return 'sms:' + waNumber(v) + '?body=' + q;
+    return '';
+  }
+
   /* ---------- Label teks & urutan seksi ---------- */
   function L(k, vars) {
     let t = (db.settings.labels && db.settings.labels[k]) || LABELS[k] || '';
@@ -599,7 +675,7 @@ ${bars}
   /* ---------- Public API ---------- */
   const T = {
     FONTS, fontUrl, fontStack, contrast, placeholder, getPath,
-    pricing, promoState, waNumber, SOCIALS, safeUrl, safeImg, socialHref, socialLinks, L, LABELS, sectionOrder, SECTION_IDS,
+    pricing, promoState, waNumber, SOCIALS, safeUrl, safeImg, safeFont, fontFaceCSS, customFontNames, CHANNELS, channelList, channelUrl, chanOk, socialHref, socialLinks, L, LABELS, sectionOrder, SECTION_IDS,
     remote: REMOTE, auth, status: 'idle',
     get: () => db,
     update(fn) { fn(db); persist(); notify('local'); },
@@ -637,6 +713,17 @@ ${bars}
       const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType: type, cacheControl: '31536000', upsert: false });
       if (error) throw error;
       return sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    },
+
+    /* Upload font ke bucket Storage khusus (hanya admin) */
+    async uploadFont(file, ext) {
+      if (!REMOTE || !isAdmin) throw new Error('Bukan admin');
+      const bucket = cfg.FONT_BUCKET || 'store-fonts';
+      const type = { ttf: 'font/ttf', otf: 'font/otf', woff: 'font/woff', woff2: 'font/woff2' }[ext] || 'application/octet-stream';
+      const path = Date.now().toString(36) + Math.random().toString(36).slice(2, 7) + '.' + ext;
+      const { error } = await sb.storage.from(bucket).upload(path, file, { contentType: type, cacheControl: '31536000', upsert: false });
+      if (error) throw error;
+      return sb.storage.from(bucket).getPublicUrl(path).data.publicUrl;
     },
 
     /* Newsletter (boleh dipanggil pengunjung) */
